@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+plotly
+pillow
+scikit-learn
+sentence-transformers
+langdetect
+ultralytics

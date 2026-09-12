@@ -1,0 +1,47 @@
+{
+  "dataset_rows": 5000,
+  "precursor_classes": [
+    "Confined Space Exposure",
+    "Contractor Control Failure",
+    "Dropped Object",
+    "Electrical Contact",
+    "Emergency Response Gap",
+    "Excavation / Ground Hazard",
+    "Fall from Height",
+    "Fire and Explosion Potential",
+    "Inadequate PPE",
+    "Loss of Containment",
+    "Permit Control Failure",
+    "Procedural Control Failure",
+    "Process Safety Barrier Failure",
+    "Slip and Trip",
+    "Struck By / Line of Fire",
+    "Vehicle-Pedestrian Interaction"
+  ],
+  "risk_classes": [
+    "HIGH",
+    "MEDIUM"
+  ],
+  "risk_metrics_holdout": {
+    "accuracy": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "precursor_metrics_holdout": {
+    "accuracy": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "feature_text": [
+    "Report",
+    "Category",
+    "Report Type",
+    "Location",
+    "Department"
+  ],
+  "model": "TF-IDF (1-2 grams, sublinear TF) + balanced Logistic Regression",
+  "seed": 26165,
+  "warning": "Holdout metrics are not a substitute for evaluation on unseen OIL-authorized reports; source-grounded/augmented rows may share templates and terminology."
+}
