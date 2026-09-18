@@ -26,6 +26,62 @@ from sklearn.linear_model import LinearRegression
 from html import escape
 from urllib.request import Request, urlopen
 
+
+# ============================================================
+# INTERACTIVE UI / MODAL ENHANCEMENTS
+# ============================================================
+st.markdown("""
+<style>
+.interactive-card {
+    border: 1px solid rgba(90, 145, 175, .25);
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(20,29,37,.96), rgba(12,19,25,.96));
+    box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    margin-bottom: 10px;
+}
+.interactive-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(80, 170, 210, .60);
+    box-shadow: 0 14px 38px rgba(0,0,0,.28);
+}
+.interactive-card img {
+    width:100%; height:145px; object-fit:cover; display:block;
+}
+.interactive-card-body { padding:14px 16px 8px; }
+.interactive-card-title { font-weight:800; font-size:16px; color:#F2F5F7; }
+.interactive-card-text { color:rgba(241,245,249,.68); font-size:12px; line-height:1.5; margin-top:5px; }
+.expand-hint {
+    color: rgba(241,245,249,.48);
+    font-size: 11px;
+    margin-top: 8px;
+    letter-spacing: .3px;
+}
+ .foresight-shell {
+    border:1px solid rgba(90,145,175,.30); border-radius:20px; padding:20px;
+    background:radial-gradient(circle at 80% 0%, rgba(58,124,165,.16), transparent 36%),
+               linear-gradient(145deg, rgba(17,25,32,.98), rgba(9,15,20,.98));
+    box-shadow:0 18px 55px rgba(0,0,0,.24); margin:10px 0 20px;
+}
+.foresight-kicker {font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(241,245,249,.48);font-weight:800}
+.foresight-title {font-size:28px;font-weight:900;color:#F2F5F7;margin-top:4px}
+.foresight-sub {font-size:13px;color:rgba(241,245,249,.64);margin-top:5px;line-height:1.6}
+.foresight-node {border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:13px 12px;background:rgba(255,255,255,.035);text-align:center;min-height:78px}
+.foresight-node b {display:block;color:#F2F5F7;font-size:12px}.foresight-node span {display:block;color:rgba(241,245,249,.55);font-size:10px;margin-top:5px}
+.foresight-arrow {text-align:center;color:#4E94B8;font-size:24px;font-weight:900;padding-top:20px}
+.control-pill {border:1px solid rgba(82,129,90,.35);background:rgba(82,129,90,.08);border-radius:12px;padding:10px 12px;color:rgba(241,245,249,.78);font-size:12px;margin:5px 0}
+.modal-note {
+    border-left: 3px solid #3A7CA5;
+    background: rgba(58,124,165,.09);
+    padding: 11px 14px;
+    border-radius: 8px;
+    color: rgba(241,245,249,.78);
+    margin: 8px 0 14px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Optional V2 capabilities. The app remains runnable if these packages are absent.
 try:
     from sentence_transformers import SentenceTransformer
@@ -114,877 +170,649 @@ def render_logo(max_width="100%", margin="0 0 14px 0"):
 # accent glow, Inter typography, layered shadows.
 # ============================================================
 
+# ============================================================
+# OILSAFE INDUSTRIAL HSE THEME  (single consolidated stylesheet)
+# ------------------------------------------------------------
+# One source of truth for colour, typography, panels, badges,
+# tables, buttons and chart surrounds. Every page inherits from
+# here — no page-level <style> blocks are required.
+# ============================================================
+
+RISK_COLORS = {
+    "HIGH": "#FF4D4D",
+    "MEDIUM": "#FFC857",
+    "LOW": "#00A878",
+    "INFO": "#36C5F0",
+}
+
+CHART_SEQUENCE = [
+    "#00A878", "#36C5F0", "#FFC857", "#FF4D4D",
+    "#7AA6B8", "#6CC7A3", "#79BBD4", "#94A3B8",
+]
+
 render_html(
     """
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 
     <style>
+        /* ---------------- SIF DEMO POLISH ---------------- */
+        .sif-workflow-hero {
+            padding: 20px 22px;
+            margin: 4px 0 18px 0;
+            border: 1px solid rgba(54,197,240,0.22);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(14,42,46,0.98), rgba(7,26,29,0.96));
+            box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+        }
+        .sif-workflow-kicker {
+            color: #36C5F0;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1.7px;
+            margin-bottom: 7px;
+        }
+        .sif-workflow-title {
+            color: #F1F5F9;
+            font-size: 22px;
+            line-height: 1.2;
+            font-weight: 800;
+            margin-bottom: 7px;
+        }
+        .sif-workflow-sub {
+            color: rgba(241,245,249,0.68);
+            font-size: 12.5px;
+            line-height: 1.55;
+            max-width: 950px;
+        }
+        .sif-workflow-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 13px;
+        }
+        .sif-workflow-steps span {
+            border: 1px solid rgba(241,245,249,0.10);
+            background: rgba(241,245,249,0.045);
+            color: rgba(241,245,249,0.78);
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .foresight-control-note {
+            border: 1px solid rgba(0,168,120,0.22);
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: rgba(0,168,120,0.06);
+            color: rgba(241,245,249,0.68);
+            font-size: 11px;
+            line-height: 1.5;
+            margin-top: 12px;
+        }
+
+        /* ---------------- DESIGN TOKENS ---------------- */
         :root {
-            /* ---- OIL & GAS + AI SAFETY PALETTE ---- */
-            --bg-deep: #071A1D;
-            --bg-navy: #0A2226;
-            --panel: rgba(12, 40, 44, 0.55);
-            --panel-solid: #0E2A2E;
-            --border-soft: rgba(241, 245, 249, 0.12);
-            --border-glow: rgba(0, 168, 120, 0.38);
-            --text-primary: #F1F5F9;
-            --text-secondary: rgba(241, 245, 249, 0.66);
-            --text-muted: rgba(241, 245, 249, 0.45);
-            --accent: #36C5F0;
-            --accent-2: #2AA7CC;
-            --accent-soft: rgba(54, 197, 240, 0.12);
-            --danger: #FF6B6B;
-            --danger-soft: rgba(255, 107, 107, 0.12);
-            --warning: #FFC857;
-            --warning-soft: rgba(255, 200, 87, 0.14);
-            --safe: #00A878;
-            --safe-soft: rgba(0, 168, 120, 0.14);
+            --bg-deep:        #071A1D;   /* charcoal / blue-black */
+            --bg-navy:        #0A2226;
+            --panel-solid:    #0E2A2E;   /* dark petroleum blue    */
+            --panel-raised:   #123238;
+            --panel:          #0E2A2E;
+            --border-soft:    rgba(241,245,249,0.12);
+            --border-strong:  rgba(54,197,240,0.32);
+            --border-glow:    rgba(0,168,120,0.35);
+
+            --text-primary:   #F1F5F9;
+            --text-secondary: rgba(241,245,249,0.68);
+            --text-muted:     rgba(241,245,249,0.45);
+
+            --accent:         #00A878;   /* muted industrial green */
+            --accent-2:       #008F69;
+            --accent-soft:    rgba(0,168,120,0.12);
+
+            --risk-high:      #FF4D4D;
+            --risk-medium:    #FFC857;
+            --risk-low:       #00A878;
+            --info:           #36C5F0;
+
+            --high:           #FF4D4D;
+            --medium:         #FFC857;
+            --low:            #00A878;
+
+            --radius:         8px;
+            --font: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+            --mono: 'IBM Plex Mono', Consolas, monospace;
         }
 
-        html, body, [class*="css"] {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif !important;
+        /* ---------------- BASE ---------------- */
+        html, body, .stApp, [class*="css"] {
+            font-family: var(--font);
         }
-
         .stApp {
-            background:
-                radial-gradient(1100px 550px at 12% -8%, rgba(54, 197, 240, 0.07), transparent 60%),
-                radial-gradient(900px 500px at 100% 0%, rgba(54, 197, 240, 0.05), transparent 55%),
-                linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-navy) 100%);
-            color: var(--text-primary);
-        }
-
-        [data-testid="stAppViewContainer"] {
-            background: transparent;
-            color: var(--text-primary);
-        }
-
-        [data-testid="stHeader"] {
-            background: transparent;
-        }
-
-        #MainMenu,
-        footer {
-            visibility: hidden;
-        }
-
-        .main .block-container {
-            max-width: 1560px;
-            padding-top: 1.4rem;
-            padding-bottom: 3rem;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            color: var(--text-primary) !important;
-            letter-spacing: -0.01em;
-        }
-
-        p, li, label {
+            background: #071A1D;
             color: var(--text-secondary);
         }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(241, 245, 249, 0.25);
-            border-radius: 8px;
+        .app-bg-photo {
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            pointer-events: none;
+            overflow: hidden;
         }
+        .app-bg-photo img {
+            width: 100%; height: 100%; object-fit: cover;
+            opacity: 0.055;
+            filter: saturate(0.55) contrast(1.08);
+        }
+        .app-bg-photo::after {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(7,26,29,.91), rgba(7,26,29,.985) 62%, #071A1D 100%);
+        }
+        .main .block-container {
+            padding-top: 1.1rem;
+            padding-bottom: 3rem;
+            max-width: 1560px;
+        }
+        #MainMenu, footer, header [data-testid="stToolbar"] { visibility: hidden; }
+        header[data-testid="stHeader"] {
+            height: 0 !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+        }
+        header[data-testid="stHeader"] > div {
+            height: 0 !important;
+            min-height: 0 !important;
+        }
+        .main .block-container {
+            padding-top: 0.55rem !important;
+        }
+
+        h1, h2, h3, h4, h5 { color: var(--text-primary) !important; font-weight: 700; }
+        h1 { font-size: 30px !important; }
+        h2 { font-size: 21px !important; }
+        h3 { font-size: 18px !important; }
+        p, li, span, label, div { font-size: 14px; }
+
+        a { color: var(--accent); }
+        hr { border-color: var(--border-soft); }
+
+        ::-webkit-scrollbar { width: 9px; height: 9px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: #2A3A48; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38505F; }
+
+        /* ---------------- CORPORATE TOP HEADER ---------------- */
+        .top-header {
+            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+            background-image: linear-gradient(90deg, rgba(7,26,29,.97) 0%, rgba(7,26,29,.91) 58%, rgba(7,26,29,.72) 100%), url('https://images.unsplash.com/photo-1596980786765-775174984ec9?auto=format&fit=crop&w=1800&q=78');
+            background-size:cover; background-position:center 42%;
+            border:1px solid var(--border-soft);
+            border-radius:10px; padding:11px 18px; margin-bottom:16px; box-shadow:0 5px 16px rgba(0,0,0,.22);
+        }
+        .top-header-title { font-size:13px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); }
+        .top-header-page { font-size:18px; font-weight:800; color:var(--text-primary); margin-top:2px; }
+        .top-header-right { display:flex; gap:10px; flex-wrap:wrap; }
+        .status-pill { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.3px; }
+        .status-pill .dot { width:7px; height:7px; border-radius:50%; box-shadow:0 0 8px currentColor; background:currentColor; }
+        .pill-safe { background:var(--safe-soft); border:1px solid rgba(0,168,120,.35); color:var(--safe); }
+        .pill-active { background:var(--accent-soft); border:1px solid rgba(54,197,240,.35); color:var(--accent); }
 
         /* ---------------- SIDEBAR ---------------- */
-
         section[data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #071A1D 0%, #081E21 100%);
+            background: #0C1117;
             border-right: 1px solid var(--border-soft);
+            width: 268px !important;
         }
-
-        section[data-testid="stSidebar"] > div {
-            background: transparent;
+        section[data-testid="stSidebar"] > div { padding-top: 12px; }
+        .side-brand {
+            text-align: center;
+            padding: 0 6px 14px 6px;
+            border-bottom: 1px solid var(--border-soft);
+            margin-bottom: 14px;
         }
-
-        section[data-testid="stSidebar"] h1,
-        section[data-testid="stSidebar"] h2,
-        section[data-testid="stSidebar"] h3,
-        section[data-testid="stSidebar"] p,
-        section[data-testid="stSidebar"] label,
-        section[data-testid="stSidebar"] span {
-            color: var(--text-primary) !important;
+        .side-brand-title {
+            color: var(--text-primary);
+            font-size: 13px; font-weight: 800; letter-spacing: 1.4px;
         }
+        .side-brand-sub {
+            color: var(--text-muted);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 1.2px; text-transform: uppercase; margin-top: 3px;
+        }
+        .side-section {
+            color: var(--text-muted);
+            font-size: 10px; font-weight: 800;
+            letter-spacing: 1.3px; text-transform: uppercase;
+            margin: 14px 4px 7px 4px;
+        }
+        /* active navigation item */
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--accent-soft);
+            border: 1px solid transparent;
+            border-left: 3px solid var(--accent);
+            border-radius: 5px;
+            padding: 9px 11px;
+            margin: 3px 0;
+            color: #FFFFFF;
+            font-size: 13px; font-weight: 600;
+        }
+        .nav-icon { color: var(--accent); font-size: 12px; line-height: 1; }
+        .side-note {
+            border-top: 1px solid var(--border-soft);
+            padding-top: 12px; margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 11px; line-height: 1.75;
+        }
+        .side-stat { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+        .side-stat-k { color: var(--text-muted); font-size: 11px; }
+        .side-stat-v { color: var(--text-secondary); font-size: 11px; font-weight: 600; font-family: var(--mono); }
+        .profile-chip {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-radius: 6px;
+            padding: 9px 11px; margin-bottom: 10px;
+        }
+        .profile-avatar {
+            width: 30px; height: 30px; flex: 0 0 30px; border-radius: 5px;
+            background: var(--accent-soft); color: var(--accent);
+            border: 1px solid var(--border-glow);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .profile-name { color: var(--text-primary); font-size: 12.5px; font-weight: 600; }
+        .profile-role { color: var(--text-muted); font-size: 10.5px; }
 
-        section[data-testid="stSidebar"] .stButton > button {
-            background: transparent !important;
-            border: 1px solid transparent !important;
-            color: var(--text-secondary) !important;
+        /* ---------------- BUTTONS (text must never disappear) ---------------- */
+        .stButton > button,
+        .stDownloadButton > button,
+        .stFormSubmitButton > button,
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: var(--accent) !important;
+            background-image: none !important;
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+            border: 1px solid rgba(0,168,120,.55) !important;
+            border-radius: 5px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
+            padding: 8px 14px !important;
+            box-shadow: none !important;
+            transition: background-color .12s ease, border-color .12s ease;
+        }
+        .stButton > button *,
+        .stDownloadButton > button *,
+        div[data-testid="stFormSubmitButton"] button * {
+            color: var(--text-primary) !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
+        }
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #08B989 !important;
+            border-color: #00A878 !important;
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+        }
+        .stButton > button:hover * { color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; }
+        .stButton > button:focus,
+        .stButton > button:focus:not(:active),
+        .stButton > button:active,
+        .stDownloadButton > button:focus,
+        div[data-testid="stFormSubmitButton"] button:focus {
+            background-color: var(--accent-soft) !important;
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+            border-color: var(--accent) !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        .stButton > button:disabled,
+        .stButton > button[disabled],
+        div[data-testid="stFormSubmitButton"] button:disabled {
+            background-color: #141A21 !important;
+            color: var(--text-muted) !important;
+            -webkit-text-fill-color: var(--text-muted) !important;
+            border-color: var(--border-soft) !important;
+            opacity: 1 !important;
+        }
+        .stButton > button:disabled * {
+            color: var(--text-muted) !important;
+            -webkit-text-fill-color: var(--text-muted) !important;
+        }
+        /* primary-kind buttons keep the industrial green */
+        .stButton > button[kind="primary"],
+        div[data-testid="stFormSubmitButton"] button[kind="primary"] {
+            background-color: #00A878 !important;
+            border-color: #00A878 !important;
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+        }
+        .stButton > button[kind="primary"]:hover { background-color: var(--accent) !important; }
+        /* sidebar navigation buttons */
+        section[data-testid="stSidebar"] .stButton > button {
+            background-color: transparent !important;
+            border: 1px solid transparent !important;
+            border-left: 3px solid transparent !important;
+            color: var(--text-secondary) !important;
+            -webkit-text-fill-color: var(--text-secondary) !important;
             text-align: left !important;
             justify-content: flex-start !important;
-            padding: 10px 14px !important;
-            border-radius: 10px !important;
-            box-shadow: none !important;
-            transition: all 0.18s ease;
+            padding: 9px 11px !important;
+            font-weight: 500 !important;
         }
-
         section[data-testid="stSidebar"] .stButton > button:hover {
-            background: rgba(54, 197, 240, 0.08) !important;
-            border: 1px solid rgba(54, 197, 240, 0.25) !important;
-            color: var(--text-primary) !important;
-            transform: translateX(2px);
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            margin-bottom: 4px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 700;
-            background: linear-gradient(90deg, rgba(0, 168, 120, 0.18), rgba(0, 168, 120, 0.02));
-            border: 1px solid var(--border-glow);
-            color: var(--text-primary) !important;
-            box-shadow: 0 0 18px rgba(0, 168, 120, 0.14);
-        }
-
-        .nav-icon {
-            font-size: 15px;
-            width: 18px;
-            text-align: center;
+            background-color: rgba(255,255,255,0.04) !important;
+            border-left-color: var(--border-strong) !important;
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
         }
 
         /* ---------------- INPUTS ---------------- */
-
-        input,
-        textarea {
-            background-color: rgba(12, 40, 44, 0.6) !important;
+        .stTextInput input, .stTextArea textarea, .stNumberInput input,
+        .stDateInput input, .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background-color: #101720 !important;
             color: var(--text-primary) !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
             border: 1px solid var(--border-soft) !important;
-            border-radius: 8px !important;
-        }
-
-        input:focus,
-        textarea:focus {
-            border: 1px solid var(--accent) !important;
-            box-shadow: 0 0 0 3px var(--accent-soft) !important;
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: var(--text-muted) !important;
-        }
-
-        [data-baseweb="select"] > div {
-            background-color: rgba(12, 40, 44, 0.6) !important;
-            color: var(--text-primary) !important;
-            border-color: var(--border-soft) !important;
-            border-radius: 8px !important;
-        }
-
-        [data-baseweb="select"] * {
-            color: var(--text-primary) !important;
-        }
-
-        [role="listbox"] {
-            background-color: var(--panel-solid) !important;
-        }
-
-        [role="option"] {
-            color: var(--text-primary) !important;
-        }
-
-        /* ---------------- BUTTONS ---------------- */
-
-        .main .stButton > button,
-        .stDownloadButton > button {
-            background: linear-gradient(135deg, #00C78E 0%, #00A878 100%) !important;
-            color: #FFFFFF !important;
-            border: 1px solid rgba(0, 168, 120, 0.45) !important;
-            border-radius: 9px !important;
-            font-weight: 700 !important;
-            box-shadow: 0 4px 18px rgba(0, 168, 120, 0.28);
-            transition: all 0.18s ease;
-        }
-
-        .main .stButton > button:hover,
-        .stDownloadButton > button:hover {
-            filter: brightness(1.1);
-            box-shadow: 0 6px 22px rgba(0, 168, 120, 0.4);
-            transform: translateY(-1px);
-        }
-
-        /* Secondary / info button variant — apply the .btn-info class via
-           st.markdown wrappers where an AI/data action should read as informational. */
-        .btn-warning-hint {
-            color: #FFC857 !important;
-        }
-
-        /* ---------------- METRICS ---------------- */
-
-        [data-testid="stMetric"] {
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            padding: 18px;
-            border-radius: 14px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-            transition: all 0.18s ease;
-        }
-
-        [data-testid="stMetric"]:hover {
-            border: 1px solid var(--border-glow);
-            transform: translateY(-2px);
-        }
-
-        [data-testid="stMetricLabel"] {
-            color: var(--text-secondary) !important;
-            font-weight: 600 !important;
-            font-size: 12px !important;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        [data-testid="stMetricValue"] {
-            color: var(--text-primary) !important;
-        }
-
-        [data-testid="stMetricDelta"] {
-            color: var(--text-secondary) !important;
-        }
-
-        button[data-baseweb="tab"] {
-            color: var(--text-secondary) !important;
-        }
-
-        button[data-baseweb="tab"][aria-selected="true"] {
-            color: var(--accent) !important;
-        }
-
-        [data-testid="stExpander"] {
-            background: var(--panel);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-soft);
-            border-radius: 12px;
-        }
-
-        [data-testid="stExpander"] summary {
-            color: var(--text-primary) !important;
-        }
-
-        [data-testid="stDataFrame"] {
-            border: 1px solid var(--border-soft);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        [data-testid="stPlotlyChart"] {
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            border-radius: 14px;
-            padding: 10px 6px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        }
-
-        /* ---------------- TOP HEADER BAR ---------------- */
-
-        .top-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            border-radius: 14px;
-            padding: 14px 22px;
-            margin-bottom: 22px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        }
-
-        .top-header-title {
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-
-        .top-header-page {
-            font-size: 18px;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-top: 2px;
-        }
-
-        .top-header-right {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 6px 13px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .status-pill .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            box-shadow: 0 0 8px currentColor;
-        }
-
-        .pill-safe {
-            background: var(--safe-soft);
-            border: 1px solid rgba(0, 168, 120, 0.35);
-            color: var(--safe);
-        }
-
-        .pill-active {
-            background: var(--accent-soft);
-            border: 1px solid rgba(54, 197, 240, 0.35);
-            color: var(--accent);
-        }
-
-        .pill-critical {
-            background: var(--danger-soft);
-            border: 1px solid rgba(255, 107, 107, 0.4);
-            color: var(--danger);
-            animation: pulseGlow 2.2s infinite ease-in-out;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 0px rgba(255, 107, 107, 0.0); }
-            50% { box-shadow: 0 0 14px rgba(255, 107, 107, 0.35); }
-        }
-
-        /* ---------------- HERO ---------------- */
-
-        .hero {
-            position: relative;
-            background:
-                radial-gradient(600px 220px at 85% -10%, rgba(54, 197, 240, 0.14), transparent 60%),
-                linear-gradient(135deg, #0B2327 0%, #0A2226 55%, #0C2529 100%);
-            border: 1px solid var(--border-soft);
-            border-radius: 20px;
-            padding: 36px 40px;
-            margin-bottom: 26px;
-            box-shadow: 0 12px 36px rgba(0,0,0,0.35);
-            overflow: hidden;
-        }
-
-        .hero-title {
-            font-size: 36px;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-bottom: 10px;
-            letter-spacing: -0.02em;
-        }
-
-        .hero-subtitle {
-            font-size: 15.5px;
-            color: var(--text-secondary);
-            line-height: 1.7;
-            max-width: 900px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 14px;
-            border-radius: 999px;
-            background: var(--safe-soft);
-            border: 1px solid rgba(0, 168, 120, 0.35);
-            color: var(--safe);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .6px;
-            margin-bottom: 18px;
-        }
-
-        .status-badge::before {
-            content: "";
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--safe);
-            box-shadow: 0 0 8px var(--safe);
-        }
-
-        .eyebrow {
-            color: var(--accent);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1.6px;
-            text-transform: uppercase;
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin: 28px 0 14px 0;
-            letter-spacing: -0.01em;
-        }
-
-        /* ---------------- CARDS ---------------- */
-
-        .card {
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            border-radius: 14px;
-            padding: 20px;
-            height: 100%;
-            box-shadow: 0 8px 22px rgba(0,0,0,0.25);
-            transition: all 0.18s ease;
-        }
-
-        .card:hover {
-            border: 1px solid var(--border-glow);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 28px rgba(54, 197, 240, 0.12);
-        }
-
-        .card-title {
-            color: var(--text-primary);
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .card-text {
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.65;
-        }
-
-        .high-card, .medium-card, .low-card {
-            backdrop-filter: blur(14px);
-            border-radius: 14px;
-            padding: 18px;
-            height: 100%;
-            transition: all 0.18s ease;
-        }
-
-        .high-card:hover, .medium-card:hover, .low-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .high-card {
-            background: linear-gradient(160deg, rgba(255,107,107,0.10), rgba(12,40,44,0.55));
-            border: 1px solid rgba(255, 107, 107, 0.35);
-        }
-
-        .medium-card {
-            background: linear-gradient(160deg, rgba(255,200,87,0.10), rgba(12,40,44,0.55));
-            border: 1px solid rgba(255, 200, 87, 0.35);
-        }
-
-        .low-card {
-            background: linear-gradient(160deg, rgba(0,168,120,0.10), rgba(12,40,44,0.55));
-            border: 1px solid rgba(0, 168, 120, 0.35);
-        }
-
-        .alert-title {
-            color: var(--text-primary);
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 8px;
-        }
-
-        .alert-text {
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.55;
-        }
-
-        /* ---------------- PRO METRIC CARDS ---------------- */
-
-        .metric-pro {
-            position: relative;
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            border-radius: 16px;
-            padding: 20px 22px;
-            height: 100%;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-            transition: all 0.2s ease;
-            overflow: hidden;
-        }
-
-        .metric-pro:hover {
-            border: 1px solid var(--border-glow);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(54, 197, 240, 0.15);
-        }
-
-        .metric-pro-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-
-        .metric-pro-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 17px;
-        }
-
-        .metric-pro-label {
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-        }
-
-        .metric-pro-value {
-            font-size: 30px;
-            font-weight: 800;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-        }
-
-        .metric-pro-delta {
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 6px;
-        }
-
-        .icon-cyan   { background: var(--accent-soft); color: var(--accent); }
-        .icon-danger { background: var(--danger-soft); color: var(--danger); }
-        .icon-warn   { background: var(--warning-soft); color: var(--warning); }
-        .icon-safe   { background: var(--safe-soft); color: var(--safe); }
-
-        /* ---------------- WORKFLOW ---------------- */
-
-        .workflow-step {
-            background: var(--panel);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft);
-            border-radius: 12px;
-            padding: 20px 16px;
-            text-align: center;
-            height: 100%;
-            transition: all 0.18s ease;
-        }
-
-        .workflow-step:hover {
-            border: 1px solid var(--border-glow);
-            transform: translateY(-2px);
-        }
-
-        .workflow-number {
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 800;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-
-        .workflow-title {
-            color: var(--text-primary);
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-
-        .workflow-text {
-            color: var(--text-secondary);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .tag {
-            display: inline-block;
-            padding: 4px 10px;
-            margin: 0 5px 5px 0;
-            border-radius: 6px;
-            background: rgba(54, 197, 240, 0.08);
-            border: 1px solid rgba(54, 197, 240, 0.25);
-            color: #9FE3F5;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .side-note {
-            color: var(--text-muted);
-            font-size: 11px;
-            line-height: 1.6;
-        }
-
-        /* ---------------- ALERTS (success/warning/error/info) ---------------- */
-
-        [data-testid="stAlert"] {
-            background: var(--panel) !important;
-            backdrop-filter: blur(14px);
-            border-radius: 12px !important;
-            border: 1px solid var(--border-soft) !important;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.22);
-        }
-
-        [data-testid="stAlert"] p,
-        [data-testid="stAlert"] span,
-        [data-testid="stAlert"] div {
-            color: var(--text-primary) !important;
-        }
-
-        div[data-testid="stAlertContentSuccess"] { color: var(--safe) !important; }
-        div[data-testid="stAlertContentWarning"] { color: var(--warning) !important; }
-        div[data-testid="stAlertContentError"]   { color: var(--danger) !important; }
-        div[data-testid="stAlertContentInfo"]    { color: var(--accent) !important; }
-
-        /* ---------------- DIVIDERS / CAPTIONS ---------------- */
-
-        hr {
-            border: none !important;
-            border-top: 1px solid var(--border-soft) !important;
-            margin: 18px 0 !important;
-        }
-
-        [data-testid="stCaptionContainer"],
-        .stCaption {
-            color: var(--text-muted) !important;
-        }
-
-        /* ---------------- SLIDER ---------------- */
-
-        [data-testid="stSlider"] [role="slider"] {
-            background-color: var(--accent) !important;
-            box-shadow: 0 0 0 6px var(--accent-soft) !important;
-        }
-
-        [data-testid="stTickBar"] { display: none; }
-
-        /* ---------------- FORMS & BORDERED CONTAINERS ---------------- */
-
-        [data-testid="stForm"],
-        [data-testid="stVerticalBlockBorderWrapper"] {
-            background: var(--panel) !important;
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--border-soft) !important;
-            border-radius: 16px !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        }
-
-        [data-testid="stForm"] {
-            padding: 22px 22px 10px 22px !important;
-        }
-
-        /* ---------------- TABS ---------------- */
-
-        [data-testid="stTabs"] [data-baseweb="tab-list"] {
-            gap: 4px;
-            background: var(--panel);
-            border: 1px solid var(--border-soft);
-            border-radius: 12px;
-            padding: 6px;
-            backdrop-filter: blur(14px);
-        }
-
-        button[data-baseweb="tab"] {
-            border-radius: 8px !important;
-            font-weight: 700 !important;
+            border-radius: 5px !important;
             font-size: 13px !important;
         }
-
-        button[data-baseweb="tab"][aria-selected="true"] {
-            background: var(--accent-soft) !important;
+        .stTextInput input:focus, .stTextArea textarea:focus {
+            border-color: var(--accent) !important; box-shadow: none !important;
         }
-
-        [data-baseweb="tab-highlight"] {
-            background-color: var(--accent) !important;
-        }
-
-        [data-baseweb="tab-border"] {
-            background-color: transparent !important;
-        }
-
-        /* ---------------- DATAFRAME ---------------- */
-
-        [data-testid="stDataFrame"] * {
-            font-size: 13px;
-        }
-
-        /* ---------------- SELECT / MULTISELECT TAGS ---------------- */
-
-        [data-baseweb="tag"] {
-            background-color: var(--accent-soft) !important;
-            border: 1px solid var(--border-glow) !important;
-        }
-
-        /* ---------------- MISC LABELS ---------------- */
-
-        [data-testid="stWidgetLabel"] p {
+        .stTextInput label, .stTextArea label, .stSelectbox label,
+        .stMultiSelect label, .stDateInput label, .stFileUploader label,
+        .stRadio label, .stSlider label, .stCheckbox label {
             color: var(--text-secondary) !important;
-            font-weight: 600 !important;
-            font-size: 12.5px !important;
-            letter-spacing: 0.2px;
+            font-size: 12px !important; font-weight: 600 !important;
+        }
+        div[data-baseweb="popover"] li { background: var(--panel-solid) !important; color: var(--text-primary) !important; }
+        [data-testid="stFileUploaderDropzone"] {
+            background-color: #101720 !important;
+            border: 1px dashed var(--border-strong) !important;
+            color: var(--text-secondary) !important;
         }
 
-        .toolbar-label {
+        /* ---------------- TABS / EXPANDER ---------------- */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 2px; border-bottom: 1px solid var(--border-soft); background: transparent;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background: transparent; color: var(--text-muted);
+            font-size: 13px; font-weight: 600; padding: 8px 14px;
+            border-radius: 5px 5px 0 0;
+        }
+        .stTabs [aria-selected="true"] {
+            background: var(--panel-solid) !important;
+            color: var(--text-primary) !important;
+            border-bottom: 2px solid var(--accent) !important;
+        }
+        [data-testid="stExpander"] {
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft) !important;
+            border-radius: var(--radius) !important;
+        }
+        [data-testid="stExpander"] summary { color: var(--text-primary) !important; font-size: 13px; font-weight: 600; }
+
+        /* ---------------- PANELS & CARDS ---------------- */
+        .panel, .card {
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        .panel-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; margin-bottom: 12px;
+            padding-bottom: 9px; border-bottom: 1px solid var(--border-soft);
+        }
+        .panel-title, .card-title {
+            color: var(--text-primary);
+            font-size: 12px; font-weight: 700;
+            letter-spacing: 1.1px; text-transform: uppercase;
+        }
+        .panel-link, .toolbar-label {
+            color: var(--accent); font-size: 11.5px; font-weight: 600;
+            letter-spacing: 0.4px; white-space: nowrap;
+        }
+        .card-text { color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+        .section-title {
+            color: var(--text-primary);
+            font-size: 18px; font-weight: 700;
+            margin: 24px 0 12px 0;
+            padding-left: 10px;
+            border-left: 3px solid var(--accent);
+        }
+        .eyebrow {
+            color: var(--accent);
+            font-size: 10.5px; font-weight: 800;
+            letter-spacing: 1.6px; text-transform: uppercase;
+        }
+        .page-title { color: var(--text-primary); font-size: 30px; font-weight: 700; margin-top: 6px; }
+        .page-sub { color: var(--text-secondary); font-size: 13.5px; margin-top: 4px; max-width: 900px; }
+        .meta-line { color: var(--text-muted); font-size: 11.5px; font-family: var(--mono); line-height: 1.6; }
+        .divider { height: 1px; background: var(--border-soft); margin: 18px 0; }
+
+        /* risk-toned context cards (kept for existing pages) */
+        .high-card, .medium-card, .low-card, .info-card {
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-left: 3px solid var(--border-strong);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .high-card   { border-left-color: var(--risk-high); }
+        .medium-card { border-left-color: var(--risk-medium); }
+        .low-card    { border-left-color: var(--risk-low); }
+        .info-card   { border-left-color: var(--info); }
+        .alert-title {
             color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin: 0 0 10px 4px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 1.1px; text-transform: uppercase; margin-bottom: 7px;
+        }
+        .alert-text { color: var(--text-secondary); font-size: 12.5px; line-height: 1.6; }
+
+        /* ---------------- KPI CARDS ---------------- */
+        .metric-pro {
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            min-height: 96px;
+        }
+        .metric-pro-top {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .metric-pro-label {
+            color: var(--text-muted);
+            font-size: 10.5px; font-weight: 700;
+            letter-spacing: 1.05px; text-transform: uppercase; line-height: 1.3;
+        }
+        .metric-pro-icon {
+            width: 22px; height: 22px; flex: 0 0 22px;
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            font-size: 11px; color: var(--text-secondary);
+            background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft);
+        }
+        .icon-cyan   { color: var(--info);        border-color: rgba(58,124,165,0.4); }
+        .icon-safe   { color: var(--risk-low);    border-color: rgba(62,142,90,0.4); }
+        .icon-warn   { color: var(--risk-medium); border-color: rgba(217,154,43,0.4); }
+        .icon-danger { color: var(--risk-high);   border-color: rgba(210,69,58,0.4); }
+        .metric-pro-value {
+            color: var(--text-primary);
+            font-size: 26px; font-weight: 700; line-height: 1.15;
+            margin-top: 10px; font-family: var(--mono);
+        }
+        .metric-pro-delta { color: var(--text-muted); font-size: 11px; margin-top: 4px; line-height: 1.4; }
+
+        /* ---------------- BADGES ---------------- */
+        .badge {
+            display: inline-block;
+            font-size: 10px; font-weight: 800; letter-spacing: 0.9px;
+            padding: 2px 7px; border-radius: 3px; text-transform: uppercase;
+            border: 1px solid transparent; white-space: nowrap;
+        }
+        .badge-high   { color: #F0A49D; background: rgba(210,69,58,0.14);  border-color: rgba(210,69,58,0.45); }
+        .badge-medium { color: #EDC87E; background: rgba(217,154,43,0.14); border-color: rgba(217,154,43,0.45); }
+        .badge-low    { color: #8FCBA6; background: rgba(62,142,90,0.14);  border-color: rgba(62,142,90,0.45); }
+        .badge-info   { color: #9DC4DC; background: rgba(58,124,165,0.14); border-color: rgba(58,124,165,0.45); }
+        .badge-muted  { color: var(--text-muted); background: rgba(255,255,255,0.03); border-color: var(--border-soft); }
+        .tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-soft);
+            color: var(--text-secondary);
+            font-size: 11px; padding: 2px 8px; border-radius: 3px; margin: 2px 4px 2px 0;
+        }
+        .status-pill, .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-soft);
+            border-radius: 3px; padding: 4px 9px;
+        }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+        .pill-active .dot { background: var(--accent); }
+        .pill-safe   { color: #8FCBA6; border-color: rgba(62,142,90,0.4); }
+        .pill-safe .dot { background: var(--risk-low); }
+
+        /* ---------------- DATA TABLE ---------------- */
+        .hse-table-wrap { width: 100%; overflow-x: auto; }
+        table.hse-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        table.hse-table th {
+            text-align: left; color: var(--text-muted);
+            font-size: 10.5px; font-weight: 700; letter-spacing: 1.05px; text-transform: uppercase;
+            padding: 8px 10px; border-bottom: 1px solid var(--border-strong); white-space: nowrap;
+        }
+        table.hse-table td {
+            padding: 9px 10px; color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-soft); vertical-align: middle;
+        }
+        table.hse-table tr:last-child td { border-bottom: none; }
+        table.hse-table tr:hover td { background: rgba(255,255,255,0.02); }
+        table.hse-table td.mono { font-family: var(--mono); color: var(--text-primary); font-size: 12px; }
+
+        [data-testid="stDataFrame"], [data-testid="stTable"] {
+            border: 1px solid var(--border-soft); border-radius: var(--radius);
+        }
+
+        /* ---------------- LEGEND / PROGRESS ---------------- */
+        .legend-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex: 0 0 9px; }
+        .legend-name { color: var(--text-primary); font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
+        .legend-desc { color: var(--text-muted); font-size: 11.5px; }
+        .bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 6px; border-radius: 3px; background: var(--accent); }
+        .stProgress > div > div > div > div { background-color: var(--accent); }
+
+        /* ---------------- HERO (command centre banner) ---------------- */
+        .hero {
+            position: relative; overflow: hidden;
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius);
+            padding: 20px 22px; margin-bottom: 16px;
+        }
+        .hero-title { color: var(--text-primary); font-size: 30px; font-weight: 700; }
+        .hero-subtitle { color: var(--text-secondary); font-size: 13.5px; line-height: 1.65; max-width: 780px; }
+
+        /* ---------------- WORKFLOW STEPS ---------------- */
+        .workflow-step {
+            background: var(--panel-solid);
+            border: 1px solid var(--border-soft);
+            border-top: 2px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 14px 15px; height: 100%;
+        }
+        .workflow-number { color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+        .workflow-title { color: var(--text-primary); font-size: 14px; font-weight: 700; margin: 5px 0 6px 0; }
+        .workflow-text { color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+
+        /* ---------------- FOOTER ---------------- */
+        .app-footer {
+            margin-top: 28px; padding-top: 14px;
+            border-top: 1px solid var(--border-soft);
+            display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            color: var(--text-muted); font-size: 11px;
         }
 
         /* ---------------- AUTH SCREENS ---------------- */
-
         .auth-shell {
-            max-width: 460px;
-            margin: 6vh auto 0 auto;
-        }
-
-        .auth-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--accent);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1.4px;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .auth-title {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-        }
-
-        .auth-subtitle {
-            font-size: 13.5px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 22px;
-        }
-
-        .auth-divider-text {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            margin: 6px 0 14px 0;
-        }
-
-        .auth-footer-link {
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 14px;
-        }
-
-        .profile-chip {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 12px;
-            background: var(--panel);
+            max-width: 430px; margin: 6vh auto 0 auto;
+            background: var(--panel-solid);
             border: 1px solid var(--border-soft);
-            margin-bottom: 10px;
+            border-radius: 10px; padding: 26px 26px 10px 26px;
         }
-
-        .profile-avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00C78E, #36C5F0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            color: #071A1D;
-            font-size: 14px;
-            flex-shrink: 0;
+        .auth-eyebrow {
+            color: var(--accent); font-size: 10.5px; font-weight: 800;
+            letter-spacing: 1.6px; text-transform: uppercase;
         }
+        .auth-title { color: var(--text-primary); font-size: 22px; font-weight: 700; margin-top: 6px; }
+        .auth-subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 4px; line-height: 1.6; }
+        .auth-footer-link { color: var(--text-muted); font-size: 12px; text-align: center; margin-top: 6px; }
 
-        .profile-name {
-            color: var(--text-primary) !important;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.3;
-        }
+        /* ---------------- CHART SURROUND ---------------- */
+        .js-plotly-plot .plotly .modebar { display: none !important; }
+        [data-testid="stPlotlyChart"] { background: transparent; }
 
-        .profile-role {
-            color: var(--text-muted) !important;
-            font-size: 11px;
-        }
+        /* ---------------- ALERTS ---------------- */
+        .stAlert { background: var(--panel-solid) !important; border: 1px solid var(--border-soft) !important; border-radius: var(--radius) !important; }
+        .stAlert p { color: var(--text-secondary) !important; font-size: 13px !important; }
 
-        /* ---------------- RESPONSIVE / OVERFLOW GUARDS ---------------- */
+        /* ---------------- INDUSTRIAL VISUALS ---------------- */
+        .command-hero { position:relative; min-height:112px; border:1px solid rgba(241,245,249,.12); border-radius:10px; overflow:hidden; margin-bottom:12px; background:#0A2226; }
+        .command-hero-bg { position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(7,26,29,.97) 0%,rgba(7,26,29,.86) 54%,rgba(7,26,29,.62) 100%),url('https://images.unsplash.com/photo-1596980786765-775174984ec9?auto=format&fit=crop&w=1800&q=78'); background-size:cover; background-position:center 42%; }
+        .command-hero-content { position:relative; padding:22px 24px; }
+        .command-title { color:#F1F5F9; font-size:28px; line-height:1.15; font-weight:800; }
+        .command-subtitle { color:rgba(241,245,249,.70); font-size:13px; margin-top:5px; }
 
-        .main .block-container,
-        section[data-testid="stSidebar"] .block-container {
-            overflow-x: hidden;
-        }
-
-        img { max-width: 100%; height: auto; }
-
-        [data-testid="stDataFrame"],
-        [data-testid="stTable"],
-        [data-testid="stPlotlyChart"] {
-            max-width: 100%;
-            overflow-x: auto;
-        }
-
-        .image-feature {
-            display:grid; grid-template-columns:1.08fr 1fr; min-height:260px;
-            border:1px solid rgba(241,245,249,0.12); border-radius:18px; overflow:hidden;
-            background:linear-gradient(135deg, rgba(8,30,33,0.96), rgba(10,42,45,0.72));
-            box-shadow:0 18px 45px rgba(0,0,0,0.18);
-        }
+        .image-feature { display:grid; grid-template-columns:1.08fr 1fr; min-height:260px; border:1px solid rgba(241,245,249,.12); border-radius:18px; overflow:hidden; background:linear-gradient(135deg,rgba(8,30,33,.96),rgba(10,42,45,.72)); box-shadow:0 18px 45px rgba(0,0,0,.18); }
         .image-feature-media { position:relative; min-height:260px; overflow:hidden; }
-        .image-feature-media img, .visual-strip img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s ease; }
-        .image-feature:hover img, .visual-strip:hover img { transform:scale(1.025); }
-        .image-overlay, .visual-strip-overlay { position:absolute; inset:0; background:linear-gradient(90deg, rgba(7,26,29,0.08), rgba(7,26,29,0.72)); pointer-events:none; }
-        .image-caption { position:absolute; left:16px; bottom:14px; color:#F1F5F9; font-size:11px; font-weight:600; padding:7px 10px; border-radius:999px; background:rgba(7,26,29,0.72); border:1px solid rgba(54,197,240,0.24); backdrop-filter:blur(8px); }
+        .image-feature-media img,.visual-strip img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s ease; }
+        .image-feature:hover img,.visual-strip:hover img { transform:scale(1.025); }
+        .image-overlay,.visual-strip-overlay { position:absolute; inset:0; background:linear-gradient(90deg,rgba(7,26,29,.08),rgba(7,26,29,.72)); pointer-events:none; }
+        .image-caption { position:absolute; left:16px; bottom:14px; color:#F1F5F9; font-size:11px; font-weight:600; padding:7px 10px; border-radius:999px; background:rgba(7,26,29,.72); border:1px solid rgba(54,197,240,.24); backdrop-filter:blur(8px); }
+        .image-credit { margin-top:6px; color:rgba(241,245,249,.48); font-size:10px; line-height:1.4; }
+        .image-credit a { color:rgba(214,122,33,.78); text-decoration:none; }
+        .image-credit a:hover { text-decoration:underline; }
         .image-feature-copy { padding:30px; display:flex; flex-direction:column; justify-content:center; }
         .eyebrow { color:#36C5F0; font-size:10px; font-weight:800; letter-spacing:1.3px; margin-bottom:8px; }
         .feature-title { color:#F1F5F9; font-size:25px; line-height:1.15; font-weight:800; margin-bottom:12px; }
-        .feature-text { color:rgba(241,245,249,0.68); font-size:13px; line-height:1.7; max-width:620px; }
+        .feature-text { color:rgba(241,245,249,.68); font-size:13px; line-height:1.7; max-width:620px; }
         .feature-tags { display:flex; flex-wrap:wrap; gap:7px; margin-top:17px; }
-        .feature-tags span { color:#00A878; background:rgba(0,168,120,0.10); border:1px solid rgba(0,168,120,0.25); border-radius:999px; padding:5px 9px; font-size:10px; font-weight:700; }
-        .visual-strip { position:relative; height:190px; overflow:hidden; border-radius:17px; border:1px solid rgba(241,245,249,0.12); background:#071A1D; box-shadow:0 14px 35px rgba(0,0,0,0.16); }
+        .feature-tags span { color:#00A878; background:rgba(0,168,120,.10); border:1px solid rgba(0,168,120,.25); border-radius:999px; padding:5px 9px; font-size:10px; font-weight:700; }
+        .visual-strip { position:relative; height:190px; overflow:hidden; border-radius:17px; border:1px solid rgba(241,245,249,.12); background:#071A1D; box-shadow:0 14px 35px rgba(0,0,0,.16); }
         .visual-strip.compact { height:165px; }
-        .visual-strip-overlay { background:linear-gradient(90deg, rgba(7,26,29,0.82) 0%, rgba(7,26,29,0.48) 52%, rgba(7,26,29,0.16) 100%); }
+        .visual-strip-overlay { background:linear-gradient(90deg,rgba(7,26,29,.82) 0%,rgba(7,26,29,.48) 52%,rgba(7,26,29,.16) 100%); }
         .visual-strip-copy { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; justify-content:center; padding:24px 28px; max-width:690px; }
         .visual-strip-title { color:#F1F5F9; font-size:21px; font-weight:800; line-height:1.2; margin-bottom:8px; }
-        .visual-strip-text { color:rgba(241,245,249,0.72); font-size:12.5px; line-height:1.55; }
+        .visual-strip-text { color:rgba(241,245,249,.72); font-size:12.5px; line-height:1.55; }
 
+        /* ---------------- RESPONSIVE ---------------- */
+        @media (max-width: 1200px) {
+            .metric-pro-value { font-size: 22px; }
+            .top-header-sub { display: none; }
+        }
         @media (max-width: 900px) {
-            .main .block-container { padding-left: 0.8rem; padding-right: 0.8rem; }
-            .hero { padding: 26px 20px; }
-            .hero-title { font-size: 26px; }
             .image-feature { grid-template-columns:1fr; }
             .image-feature-media { min-height:200px; }
             .image-feature-copy { padding:22px; }
+            .main .block-container { padding-left: 0.8rem; padding-right: 0.8rem; }
             .top-header { flex-direction: column; align-items: flex-start; }
+            .hero-title, .page-title { font-size: 24px; }
             .auth-shell { margin: 3vh auto 0 auto; max-width: 100%; }
         }
-
         @media (max-width: 600px) {
-            [data-testid="stMetric"], .metric-pro { padding: 14px; }
-            .metric-pro-value { font-size: 22px; }
+            [data-testid="stMetric"], .metric-pro { padding: 11px; min-height: 84px; }
+            .metric-pro-value { font-size: 20px; }
+            .section-title { font-size: 16px; }
         }
     </style>
     """
@@ -1005,15 +833,6 @@ render_html(
 # ============================================================
 
 USERS_FILE = Path(__file__).resolve().parent / "users_store.json"
-
-# ============================================================
-# LICENSED INDUSTRY IMAGE ASSETS
-# Images are sourced from individual Unsplash pages that explicitly
-# state "Free to use under the Unsplash License". The app first
-# looks for an optimized local WebP in assets/images/. If the local
-# copy is not present yet, it falls back to the verified Unsplash
-# image URL so the site remains usable.
-# ============================================================
 
 IMAGE_ASSET_DIR = Path(__file__).resolve().parent / "assets" / "images"
 IMAGE_ASSET_DIR.mkdir(parents=True, exist_ok=True)
@@ -1075,6 +894,20 @@ IMAGE_ASSETS = {
         "page": "https://unsplash.com/photos/industrial-refinery-with-storage-tanks-Wb4vcBqyGT8",
         "photographer": "Red Shuheart",
     },
+    "safety_worker": {
+        "file": "industrial-safety-worker.webp",
+        "url": "https://images.pexels.com/photos/19895881/pexels-photo-19895881.jpeg?auto=compress&cs=tinysrgb&w=1800",
+        "alt": "Safety-conscious industrial worker inspecting machinery",
+        "page": "https://www.pexels.com/photo/factory-worker-in-a-safety-helmet-19895881/",
+        "photographer": "ThisIsEngineering",
+    },
+    "offshore_safety": {
+        "file": "offshore-safety-worker.webp",
+        "url": "https://images.pexels.com/photos/31410602/pexels-photo-31410602.jpeg?auto=compress&cs=tinysrgb&w=1800",
+        "alt": "Worker in safety gear welding on an offshore oil rig",
+        "page": "https://www.pexels.com/photo/industrial-worker-welding-on-offshore-rig-31410602/",
+        "photographer": "Anoop VS",
+    },
 }
 
 def image_src(asset_key):
@@ -1091,6 +924,14 @@ def image_src(asset_key):
 
 def image_alt(asset_key):
     return IMAGE_ASSETS[asset_key]["alt"]
+
+def image_credit(asset_key):
+    asset = IMAGE_ASSETS[asset_key]
+    return (
+        f'<div class="image-credit">Image: {escape(asset["photographer"])} · '
+        f'<a href="{asset["page"]}" target="_blank" rel="noopener noreferrer">source / license</a>'
+        '</div>'
+    )
 
 def _download_missing_image_assets():
     """Best-effort first-run download of the verified Unsplash assets.
@@ -1122,7 +963,8 @@ def _download_missing_image_assets():
     except Exception:
         pass
 
-_download_missing_image_assets()
+# Do not download decorative assets during every Streamlit process start.
+# Remote URLs remain the fallback, while locally bundled WebP files are used when present.
 AUTH_BG_IMAGE = image_src("refinery")
 
 
@@ -1211,7 +1053,7 @@ def _auth_background():
     render_html(
         f"""
         <div style="position:fixed; inset:0; z-index:-1; overflow:hidden;">
-            <img src="{AUTH_BG_IMAGE}" alt="" aria-hidden="true"
+            <img src="{AUTH_BG_IMAGE}"
                  style="width:100%; height:100%; object-fit:cover; opacity:0.22;" />
             <div style="position:absolute; inset:0;
                 background:
@@ -1234,9 +1076,8 @@ def _render_login_view():
                 <div class="auth-eyebrow">⛭ AI-Powered Safety Intelligence</div>
                 <div class="auth-title">Sign in to OilSafe Intelligence</div>
                 <div class="auth-subtitle">
-                    NLP-driven early warning for Serious Injury &amp; Fatality
-                    precursors in unsafe-act, unsafe-condition and near-miss
-                    reports.
+                    AI-assisted HSE intelligence for proactive risk screening,
+                    SIF precursor detection and explainable safety decision support.
                 </div>
             </div>
             """
@@ -1365,9 +1206,107 @@ if not st.session_state.authenticated:
     st.stop()
 
 
+# ============================================================
+# REUSABLE UI COMPONENTS
+# ------------------------------------------------------------
+# Every page builds its surface from these helpers so the whole
+# platform shares one visual grammar: panels, KPI cards, risk
+# badges, enterprise tables and section headings.
+# ============================================================
+
+APP_TITLE = "OilSafe Intelligence"
+MODEL_VERSION = "v2.0"
+HSE_STRIP = ["HEALTH", "SAFETY", "ENVIRONMENT", "SUSTAINABILITY"]
+
+
+def _fmt(value):
+    """Thousands-separated integers, everything else untouched."""
+    if isinstance(value, (int, np.integer)):
+        return f"{int(value):,}"
+    if isinstance(value, float) and value.is_integer():
+        return f"{int(value):,}"
+    return value
+
+
+def risk_badge(risk):
+    """Compact risk badge — HIGH / MEDIUM / LOW."""
+    key = str(risk).strip().upper()
+    cls = {
+        "HIGH": "badge-high",
+        "MEDIUM": "badge-medium",
+        "LOW": "badge-low",
+    }.get(key, "badge-muted")
+    return f'<span class="badge {cls}">{escape(key)}</span>'
+
+
+def status_badge(status):
+    """Compact workflow-status badge — OPEN / UNDER REVIEW / CLOSED."""
+    key = str(status).strip().upper()
+    cls = {
+        "OPEN": "badge-high",
+        "UNDER REVIEW": "badge-medium",
+        "IN REVIEW": "badge-medium",
+        "CLOSED": "badge-low",
+    }.get(key, "badge-info")
+    return f'<span class="badge {cls}">{escape(key)}</span>'
+
+
+
+def _safe_asset_url(asset_key):
+    """Return the configured image URL for a modal; local assets are preferred by image_src."""
+    return IMAGE_ASSETS[asset_key]["url"]
+
+
+@st.dialog("Safety Intelligence — Expanded View", width="large")
+def show_safety_modal(title, description="", image_key=None, figure=None, dataframe=None, metrics=None):
+    """Reusable full-size modal for dashboard cards, charts and safety modules."""
+    st.markdown(f"### {escape(str(title))}")
+    if image_key:
+        st.image(image_src(image_key), use_container_width=True)
+        st.markdown(image_credit(image_key), unsafe_allow_html=True)
+    if description:
+        st.markdown(f'<div class="modal-note">{escape(str(description))}</div>', unsafe_allow_html=True)
+    if metrics:
+        cols = st.columns(min(len(metrics), 4))
+        for col, (label, value) in zip(cols, metrics.items()):
+            with col:
+                st.metric(label, value)
+    if figure is not None:
+        st.plotly_chart(figure, use_container_width=True, key=f"modal_fig_{title}")
+    if dataframe is not None:
+        st.dataframe(dataframe, use_container_width=True, hide_index=True)
+    st.caption("Expanded view • Close this dialog to return to the current page.")
+
+
+def interactive_image_card(asset_key, title, description, button_key):
+    """Render an image card with a Streamlit-native modal trigger."""
+    asset = IMAGE_ASSETS[asset_key]
+    render_html(
+        f"""
+        <div class="interactive-card">
+            <img src="{image_src(asset_key)}" alt="{image_alt(asset_key)}" loading="lazy">
+            <div class="interactive-card-body">
+                <div class="interactive-card-title">{escape(title)}</div>
+                <div class="interactive-card-text">{escape(description)}</div>
+                <div class="expand-hint">Click “Open details” for the expanded safety view.</div>
+            </div>
+        </div>
+        """
+    )
+    if st.button("↗ Open details", key=button_key, use_container_width=True):
+        show_safety_modal(title, description, image_key=asset_key)
+
+
+def chart_expand_button(label, figure, key, description="Interactive chart — use zoom, pan and hover tools in the expanded view."):
+    """Add a consistent fullscreen/expanded control beneath a Plotly chart."""
+    if st.button("⛶  Expand chart", key=key, use_container_width=True):
+        show_safety_modal(label, description, figure=figure)
+
+
 def metric_card(icon, label, value, delta_text=None, tone="cyan"):
+    """Compact KPI card: small label, large value, supporting line."""
     delta_html = (
-        f'<div class="metric-pro-delta" style="color:var(--text-secondary);">{delta_text}</div>'
+        f'<div class="metric-pro-delta">{delta_text}</div>'
         if delta_text else ""
     )
     render_html(
@@ -1377,25 +1316,79 @@ def metric_card(icon, label, value, delta_text=None, tone="cyan"):
                 <div class="metric-pro-label">{label}</div>
                 <div class="metric-pro-icon icon-{tone}">{icon}</div>
             </div>
-            <div class="metric-pro-value">{value}</div>
+            <div class="metric-pro-value">{_fmt(value)}</div>
             {delta_html}
         </div>
         """
     )
 
 
+def panel_open(title, right_text=None):
+    """Open a bordered panel with an uppercase title bar."""
+    right = (
+        f'<div class="panel-link">{right_text}</div>' if right_text else ""
+    )
+    render_html(
+        f'<div class="panel"><div class="panel-head">'
+        f'<div class="panel-title">{title}</div>{right}</div>'
+    )
+
+
+def panel_close():
+    render_html("</div>")
+
+
+def section_title(text):
+    render_html(f'<div class="section-title">{text}</div>')
+
+
+def hse_table(columns, rows, empty_text="No records available."):
+    """Enterprise HSE monitoring table. `rows` holds pre-rendered HTML cells."""
+    if not rows:
+        render_html(f'<div class="card-text">{empty_text}</div>')
+        return
+    head = "".join(f"<th>{c}</th>" for c in columns)
+    body = "".join(
+        "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
+        for row in rows
+    )
+    render_html(
+        '<div class="hse-table-wrap"><table class="hse-table">'
+        f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"
+    )
+
+
 def top_header(current_page):
+    """Clean professional product header; competition/problem identifiers stay out of the UI."""
+    record_count = len(df) if "df" in globals() else 0
+    model_status = "Model ready" if "risk_model" in globals() else "Model starting"
+    dataset_status = "Dataset unavailable"
+    if DATA_FILE.exists():
+        updated = datetime.fromtimestamp(DATA_FILE.stat().st_mtime).strftime("%d %b %H:%M")
+        dataset_status = f"{record_count:,} records · updated {updated}"
     render_html(
         f"""
         <div class="top-header">
             <div>
                 <div class="top-header-title">OILSAFE INTELLIGENCE</div>
-                <div class="top-header-page">{current_page}</div>
+                <div class="top-header-page">{escape(str(current_page))}</div>
             </div>
             <div class="top-header-right">
-                <span class="status-pill pill-active"><span class="dot"></span>Engine Online</span>
-                <span class="status-pill pill-safe"><span class="dot"></span>Data Synced</span>
+                <span class="status-pill pill-active"><span class="dot"></span>{model_status}</span>
+                <span class="status-pill pill-safe"><span class="dot"></span>{dataset_status}</span>
             </div>
+        </div>
+        """
+    )
+
+
+def app_footer():
+    render_html(
+        """
+        <div class="app-footer">
+            <div>OIL India Limited &nbsp;|&nbsp; HSE Analytics Platform</div>
+            <div>A Safer Tomorrow for a Stronger India</div>
+            <div>Confidential &nbsp;|&nbsp; For Internal Use Only</div>
         </div>
         """
     )
@@ -1489,96 +1482,112 @@ X = df["Report"].astype(str)
 y_risk = df["Risk"].astype(str)
 y_precursor = df["Precursor"].astype(str)
 
-# Stratified hold-out evaluation. With the balanced 5,000-record
-# dataset, every precursor class is represented in both splits.
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y_risk,
-    test_size=0.20,
-    random_state=42,
-    stratify=y_risk,
-)
 
-risk_model = Pipeline([
-    (
-        "tfidf",
-        TfidfVectorizer(
-            stop_words="english",
-            ngram_range=(1, 2),
-            min_df=2,
-            sublinear_tf=True,
-        ),
-    ),
-    (
-        "classifier",
-        LogisticRegression(
-            max_iter=3000,
-            class_weight="balanced",
-            random_state=42,
-        ),
-    ),
-])
+@st.cache_resource(show_spinner="Initialising safety intelligence models...")
+def train_safety_models(texts, risks, precursors):
+    """
+    Train the TF-IDF + Logistic Regression pipelines ONCE per session.
 
-risk_model.fit(X_train, y_train)
-risk_predictions = risk_model.predict(X_test)
+    Cached with @st.cache_resource so navigating between pages never
+    retrains anything — the fitted pipelines, the hold-out splits and
+    every evaluation metric are computed a single time and reused.
+    """
+    texts = pd.Series(texts)
+    risks = pd.Series(risks)
+    precursors = pd.Series(precursors)
 
-risk_accuracy = accuracy_score(y_test, risk_predictions)
-risk_precision = precision_score(
-    y_test, risk_predictions, average="weighted", zero_division=0
-)
-risk_recall = recall_score(
-    y_test, risk_predictions, average="weighted", zero_division=0
-)
-risk_f1 = f1_score(
-    y_test, risk_predictions, average="weighted", zero_division=0
-)
+    # ---- RISK MODEL (stratified hold-out evaluation) ----
+    X_train, X_test, y_train, y_test = train_test_split(
+        texts, risks, test_size=0.20, random_state=42, stratify=risks,
+    )
 
-X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(
-    X,
-    y_precursor,
-    test_size=0.20,
-    random_state=42,
-    stratify=y_precursor,
-)
+    risk_model = Pipeline([
+        ("tfidf", TfidfVectorizer(
+            stop_words="english", ngram_range=(1, 2),
+            min_df=2, sublinear_tf=True,
+        )),
+        ("classifier", LogisticRegression(
+            max_iter=3000, class_weight="balanced", random_state=42,
+        )),
+    ])
+    risk_model.fit(X_train, y_train)
+    risk_predictions = risk_model.predict(X_test)
 
-precursor_model = Pipeline([
-    (
-        "tfidf",
-        TfidfVectorizer(
-            stop_words="english",
-            ngram_range=(1, 2),
-            min_df=2,
-            sublinear_tf=True,
-        ),
-    ),
-    (
-        "classifier",
-        LogisticRegression(
-            max_iter=5000,
-            class_weight="balanced",
-            random_state=42,
-        ),
-    ),
-])
+    # ---- PRECURSOR MODEL ----
+    X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(
+        texts, precursors, test_size=0.20, random_state=42, stratify=precursors,
+    )
 
-precursor_model.fit(X_train_p, y_train_p)
-precursor_predictions = precursor_model.predict(X_test_p)
+    precursor_model = Pipeline([
+        ("tfidf", TfidfVectorizer(
+            stop_words="english", ngram_range=(1, 2),
+            min_df=2, sublinear_tf=True,
+        )),
+        ("classifier", LogisticRegression(
+            max_iter=5000, class_weight="balanced", random_state=42,
+        )),
+    ])
+    precursor_model.fit(X_train_p, y_train_p)
+    precursor_predictions = precursor_model.predict(X_test_p)
 
-precursor_accuracy = accuracy_score(
-    y_test_p, precursor_predictions
-)
-precursor_precision = precision_score(
-    y_test_p, precursor_predictions,
-    average="weighted", zero_division=0
-)
-precursor_recall = recall_score(
-    y_test_p, precursor_predictions,
-    average="weighted", zero_division=0
-)
-precursor_f1 = f1_score(
-    y_test_p, precursor_predictions,
-    average="weighted", zero_division=0
-)
+    # Class-specific HIGH-risk recall — the metric that matters most for
+    # SIF screening, since a missed high-risk report is the costly error.
+    try:
+        high_risk_recall = recall_score(
+            y_test, risk_predictions, labels=["HIGH"],
+            average="macro", zero_division=0,
+        )
+    except Exception:
+        high_risk_recall = float("nan")
+
+    return {
+        "risk_model": risk_model,
+        "precursor_model": precursor_model,
+        "X_train": X_train, "X_test": X_test,
+        "y_train": y_train, "y_test": y_test,
+        "X_train_p": X_train_p, "X_test_p": X_test_p,
+        "y_train_p": y_train_p, "y_test_p": y_test_p,
+        "risk_predictions": risk_predictions,
+        "precursor_predictions": precursor_predictions,
+        "risk_accuracy": accuracy_score(y_test, risk_predictions),
+        "risk_precision": precision_score(
+            y_test, risk_predictions, average="weighted", zero_division=0),
+        "risk_recall": recall_score(
+            y_test, risk_predictions, average="weighted", zero_division=0),
+        "risk_f1": f1_score(
+            y_test, risk_predictions, average="weighted", zero_division=0),
+        "high_risk_recall": high_risk_recall,
+        "precursor_accuracy": accuracy_score(y_test_p, precursor_predictions),
+        "precursor_precision": precision_score(
+            y_test_p, precursor_predictions, average="weighted", zero_division=0),
+        "precursor_recall": recall_score(
+            y_test_p, precursor_predictions, average="weighted", zero_division=0),
+        "precursor_f1": f1_score(
+            y_test_p, precursor_predictions, average="weighted", zero_division=0),
+    }
+
+
+_models = train_safety_models(X, y_risk, y_precursor)
+
+# Unpack into the original module-level names so every downstream page
+# keeps working exactly as before — only the training cost has moved.
+risk_model = _models["risk_model"]
+precursor_model = _models["precursor_model"]
+X_train, X_test = _models["X_train"], _models["X_test"]
+y_train, y_test = _models["y_train"], _models["y_test"]
+X_train_p, X_test_p = _models["X_train_p"], _models["X_test_p"]
+y_train_p, y_test_p = _models["y_train_p"], _models["y_test_p"]
+risk_predictions = _models["risk_predictions"]
+precursor_predictions = _models["precursor_predictions"]
+risk_accuracy = _models["risk_accuracy"]
+risk_precision = _models["risk_precision"]
+risk_recall = _models["risk_recall"]
+risk_f1 = _models["risk_f1"]
+high_risk_recall = _models["high_risk_recall"]
+precursor_accuracy = _models["precursor_accuracy"]
+precursor_precision = _models["precursor_precision"]
+precursor_recall = _models["precursor_recall"]
+precursor_f1 = _models["precursor_f1"]
 
 # EXPLANATION / CONTROL LIBRARY
 # ============================================================
@@ -2109,11 +2118,27 @@ def _sif_pathway_override(text, base):
     fall_hits = [term for term in [
         "fall from height", "fell from", "lost balance", "loss of balance",
         "falling", "fall hazard", "fall protection", "edge protection",
+        "harness", "full body harness", "lifeline", "life line",
     ] if term in low]
     protection_gap_hits = [term for term in [
         "no effective protection", "no edge protection", "without guardrail",
         "without guard rails", "without fall protection", "inadequate fall protection",
         "unprotected edge", "no guardrail", "no guard rail",
+        "harness not connected", "harness was not connected",
+        "harness not attached", "harness was not attached",
+        "harness disconnected", "harness was disconnected",
+        "without connecting the harness", "without connecting harness",
+        "without connecting the full body harness",
+        "full body harness not connected", "full body harness was not connected",
+        "full body harness not attached", "full body harness was not attached",
+        "lifeline not connected", "lifeline was not connected",
+        "lifeline not attached", "lifeline was not attached",
+        "life line not connected", "life line was not connected",
+        "not connected to the lifeline", "not attached to the lifeline",
+        "not connected to a lifeline", "not attached to a lifeline",
+        "without connecting to the lifeline", "without connecting to a lifeline",
+        "without being connected to the lifeline",
+        "without being attached to the lifeline",
     ] if term in low]
 
     if len(height_hits) >= 1 and (fall_hits or protection_gap_hits):
@@ -2393,10 +2418,30 @@ def _precursor_context(text, precursor):
             "without fall protection", "no fall protection", "without guardrail", "without guard rail",
             "no guardrail", "no guard rail", "unprotected edge", "inadequate fall protection",
             "fall protection failed", "fall protection was missing", "guardrail missing",
-        ]) and not any_phrase(["fall protection provided", "guardrail installed", "guard rails installed", "edge protected"])
+            "harness not connected", "harness was not connected",
+            "harness not attached", "harness was not attached",
+            "harness disconnected", "harness was disconnected",
+            "without connecting the harness", "without connecting harness",
+            "without connecting the full body harness",
+            "full body harness not connected", "full body harness was not connected",
+            "full body harness not attached", "full body harness was not attached",
+            "lifeline not connected", "lifeline was not connected",
+            "lifeline not attached", "lifeline was not attached",
+            "not connected to the lifeline", "not attached to the lifeline",
+            "not connected to a lifeline", "not attached to a lifeline",
+            "without connecting to the lifeline", "without connecting to a lifeline",
+            "without being connected to the lifeline",
+            "without being attached to the lifeline",
+        ]) and not any_phrase([
+            "fall protection provided", "guardrail installed", "guard rails installed",
+            "edge protected", "harness connected", "harness was connected",
+            "lifeline connected", "lifeline was connected",
+        ])
         explicit_exposure = any_phrase([
-            "worker was at height", "worker working at height", "worker stood on",
+            "worker was at height", "worker working at height", "worker was working at height",
+            "worker was observed working at height", "worker observed working at height",
             "person was at height", "operator was at height", "worker was exposed to a fall",
+            "worker was exposed to fall", "person was exposed to a fall",
         ]) and not no_people
         safe = any_phrase([
             "fall protection provided", "fall protection was provided", "harness connected",
@@ -2432,17 +2477,7 @@ def _precursor_context(text, precursor):
 
     if precursor in {"Electrical Contact", "Electrical Isolation Failure"}:
         hazard = any_phrase(["live", "energized", "energised", "electrical contact", "electrical cable", "switchgear", "panel"])
-        explicit_gap = any_phrase([
-            "without isolation", "not isolated", "isolation not confirmed",
-            "isolation not completed", "isolation was not completed",
-            "no lockout", "no loto", "loto not followed",
-            "loto procedure was not followed", "lockout/tagout was not followed",
-            "live contact", "touched live", "energized while working",
-            "energised while working", "while energized", "while energised",
-            "circuit was still energized", "circuit was still energised",
-            "still energized", "still energised", "working on live",
-            "live electrical parts", "exposed to live", "live panel", "live parts",
-        ])
+        explicit_gap = any_phrase(["without isolation", "not isolated", "no lockout", "no loto", "live contact", "touched live", "energized while working", "energised while working"])
         safe = any_phrase(["de-energized", "deenergized", "isolated", "lockout", "locked out", "voltage zero", "power isolated"]) and not explicit_gap
         active = bool(hazard and explicit_gap and not safe)
         return {"active": active, "safe": bool(safe and not active), "reason": "Electrical energy with isolation/control failure" if active else "Electrical hazard controlled or exposure not explicit"}
@@ -2689,67 +2724,78 @@ def find_similar_reports(text, top_n=5):
 # PAGE HELPERS
 # ============================================================
 
-def page_header(title, subtitle):
+def page_header(title, subtitle, meta_html=None):
+    """Standard page heading used by every module."""
+    meta = (
+        f'<div class="meta-line" style="text-align:right;">{meta_html}</div>'
+        if meta_html else ""
+    )
     render_html(
         f"""
-        <div style="margin-bottom:22px;">
-            <div class="eyebrow">
-                OILSAFE INTELLIGENCE
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;
+                    gap:18px;flex-wrap:wrap;margin-bottom:18px;">
+            <div>
+                <div class="eyebrow">OILSAFE INTELLIGENCE</div>
+                <div class="page-title">{title}</div>
+                <div class="page-sub">{subtitle}</div>
             </div>
-            <div style="
-                color:#F1F5F9;
-                font-size:30px;
-                font-weight:750;
-                margin-top:7px;
-            ">
-                {title}
-            </div>
-            <div style="
-                color:rgba(241,245,249,0.66);
-                font-size:14px;
-                margin-top:5px;
-            ">
-                {subtitle}
-            </div>
+            {meta}
         </div>
         """
     )
 
 
-def professional_chart(fig, height=360):
+def professional_chart(fig, height=340, legend=True):
+    """
+    Single reusable Plotly theme: dark industrial surface, subtle grid,
+    compact legend, no 3D and no animation. Every chart in the platform
+    passes through here so they all look like one product.
+    """
     fig.update_layout(
         template="plotly_dark",
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
+        colorway=CHART_SEQUENCE,
         font=dict(
-            color="rgba(241,245,249,0.8)",
-            family="Arial",
+            color="#F1F5F9",
+            family="Inter, Segoe UI, Roboto, Arial, sans-serif",
+            size=12,
         ),
-        margin=dict(
-            l=20,
-            r=20,
-            t=55,
-            b=20,
+        title=dict(
+            font=dict(color="#F2F5F7", size=13),
+            x=0, xanchor="left", y=0.97,
         ),
+        margin=dict(l=10, r=14, t=42 if fig.layout.title.text else 14, b=28),
+        hoverlabel=dict(
+            bgcolor="#151C25",
+            bordercolor="#2E404F",
+            font=dict(color="#F2F5F7", size=12),
+        ),
+        showlegend=legend,
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
-            font=dict(color="rgba(241,245,249,0.8)"),
+            font=dict(color="#A9B6C2", size=11),
+            orientation="h", yanchor="bottom", y=1.0,
+            xanchor="right", x=1,
         ),
+        transition_duration=0,
+        bargap=0.34,
     )
-
     fig.update_xaxes(
-        gridcolor="#1F3B3E",
-        linecolor="#2C4A4D",
-        zerolinecolor="#2C4A4D",
+        gridcolor="rgba(46,64,79,0.55)",
+        linecolor="#2E404F",
+        zerolinecolor="#2E404F",
+        tickfont=dict(size=11, color="#8C9AA7"),
+        title_font=dict(size=11, color="#6F7F8D"),
     )
-
     fig.update_yaxes(
-        gridcolor="#1F3B3E",
-        linecolor="#2C4A4D",
-        zerolinecolor="#2C4A4D",
+        gridcolor="rgba(46,64,79,0.55)",
+        linecolor="#2E404F",
+        zerolinecolor="#2E404F",
+        tickfont=dict(size=11, color="#8C9AA7"),
+        title_font=dict(size=11, color="#6F7F8D"),
     )
-
     return fig
 
 
@@ -2953,44 +2999,65 @@ def false_negative_metrics(y_true, y_pred):
     except Exception:
         return 0.0, 0
 
+def render_app_background():
+    url = IMAGE_ASSETS.get("refinery", {}).get("url", "")
+    if url:
+        render_html(f"""
+        <div class="app-bg-photo" aria-hidden="true">
+            <img src="{url}" alt="" loading="lazy" />
+        </div>
+        """)
+
+
 # ============================================================
 # SIDEBAR
 # ============================================================
 
+render_app_background()
+
 NAV_ITEMS = [
-    ("Command Center", "🛰️"),
-    ("AI Assessment", "🧠"),
-    ("SIF Early Warning", "⚠️"),
-    ("Report Register", "🗂️"),
-    ("Safety Analytics", "📊"),
-    ("Similar Reports", "🔎"),
-    ("Control Library", "🛡️"),
-    ("Advanced SIF Engine", "🚨"),
-    ("Methodology", "🧭"),
+    ("Command Center", ""),
+    ("AI Assessment", ""),
+    ("SIF Early Warning", ""),
+    ("Report Register", ""),
+    ("Safety Analytics", ""),
+    ("Similar Reports", ""),
+    ("Control Library", ""),
+    ("Advanced SIF Engine", ""),
+    ("SIF Foresight", ""),
+    ("Methodology", ""),
 ]
+
+
+@st.cache_data(show_spinner=False)
+def dataset_profile(data):
+    """Dataset-level facts reused by the sidebar, header and KPI row."""
+    dates = pd.to_datetime(data["Date"], errors="coerce").dropna()
+    return {
+        "records": int(len(data)),
+        "last_updated": dates.max() if len(dates) else None,
+        "first_date": dates.min() if len(dates) else None,
+    }
+
+
+DATA_PROFILE = dataset_profile(df)
+_last_updated = DATA_PROFILE["last_updated"]
+LAST_UPDATED_TEXT = (
+    _last_updated.strftime("%d %b %Y") if _last_updated is not None else "Not available"
+)
 
 if "page" not in st.session_state:
     st.session_state.page = "Command Center"
 
 with st.sidebar:
 
-    render_logo(max_width="230px", margin="6px auto 10px auto")
+    render_logo(max_width="170px", margin="2px auto 10px auto")
 
     render_html(
         """
-        <div style="
-            padding:0 4px 20px 4px;
-            border-bottom:1px solid rgba(241,245,249,0.14);
-            margin-bottom:18px;
-            text-align:center;
-        ">
-            <div style="
-                color:rgba(241,245,249,0.45);
-                font-size:12px;
-                margin-top:2px;
-            ">
-                Early warning for workplace safety risks
-            </div>
+        <div class="side-brand">
+            <div class="side-brand-title">OILSAFE INTELLIGENCE</div>
+            <div class="side-brand-sub">HSE Analytics Platform</div>
         </div>
         """
     )
@@ -3011,7 +3078,23 @@ with st.sidebar:
         """
     )
 
-    if st.button("⎋   Logout", key="nav_logout", use_container_width=True):
+    render_html('<div class="side-section">Navigation</div>')
+
+    for label, icon in NAV_ITEMS:
+        if st.session_state.page == label:
+            render_html(
+                f'<div class="nav-item">{label}</div>'
+            )
+        else:
+            if st.button(label, key=f"nav_{label}", use_container_width=True):
+                st.session_state.page = label
+                st.rerun()
+
+    page = st.session_state.page
+
+    render_html('<div class="side-section">Session</div>')
+
+    if st.button("⌁   Sign Out", key="nav_logout", use_container_width=True):
         st.session_state.authenticated = False
         st.session_state.current_user = None
         st.session_state.auth_view = "login"
@@ -3019,36 +3102,24 @@ with st.sidebar:
         st.rerun()
 
     render_html(
-        '<div style="color:rgba(241,245,249,0.45);font-size:11px;font-weight:800;'
-        'letter-spacing:1px;text-transform:uppercase;margin:14px 4px 8px 4px;">'
-        "Navigation</div>"
-    )
-
-    for label, icon in NAV_ITEMS:
-        if st.session_state.page == label:
-            render_html(
-                f"""
-                <div class="nav-item">
-                    <span class="nav-icon">{icon}</span> {label}
-                </div>
-                """
-            )
-        else:
-            if st.button(f"{icon}   {label}", key=f"nav_{label}", use_container_width=True):
-                st.session_state.page = label
-                st.rerun()
-
-    page = st.session_state.page
-
-    st.markdown("---")
-
-    render_html(
-        """
+        f"""
         <div class="side-note">
-            <b style="color:rgba(241,245,249,0.66);">SYSTEM STATUS</b><br>
-            AI engine: <span style="color:#00A878;">Online</span><br>
-            NLP pipeline: <span style="color:#00A878;">Active</span><br>
-            Dataset: 5,000 OIL-grounded records
+            <div class="side-stat">
+                <span class="side-stat-k">System Status</span>
+                <span class="side-stat-v" style="color:#8FCBA6;">● Operational</span>
+            </div>
+            <div class="side-stat">
+                <span class="side-stat-k">Model Version</span>
+                <span class="side-stat-v">{MODEL_VERSION}</span>
+            </div>
+            <div class="side-stat">
+                <span class="side-stat-k">Dataset</span>
+                <span class="side-stat-v">{DATA_PROFILE["records"]:,} reports</span>
+            </div>
+            <div class="side-stat">
+                <span class="side-stat-k">Last Updated</span>
+                <span class="side-stat-v">{LAST_UPDATED_TEXT}</span>
+            </div>
         </div>
         """
     )
@@ -3065,320 +3136,432 @@ top_header(page)
 # COMMAND CENTER
 # ============================================================
 
+# ------------------------------------------------------------
+# Cached dataset analytics. These run once per dataset and are
+# reused on every navigation, so the Command Center renders
+# without recomputing anything.
+# ------------------------------------------------------------
+
+SIF_ENERGY_TERMS = (
+    "height", "fall", "confined", "gas", "h2s", "toxic", "fire", "explosion",
+    "electric", "pressure", "line of fire", "struck", "lifting", "crane",
+    "vehicle", "driving", "transport", "excavation", "hot work", "machin",
+    "rotating", "process safety", "energy", "isolation", "permit",
+)
+
+
+@st.cache_data(show_spinner=False)
+def sif_precursor_flags(data):
+    """
+    Flag reports carrying a high-energy SIF precursor.
+
+    Rule-based and auditable: a report qualifies when its precursor
+    category maps to a high-energy SIF pathway AND the assessed risk
+    is HIGH or MEDIUM. No invented numbers — everything is derived
+    from the loaded dataset.
+    """
+    precursor = data["Precursor"].astype(str).str.lower()
+    energy = precursor.apply(
+        lambda value: any(term in value for term in SIF_ENERGY_TERMS)
+    )
+    return energy & data["Risk"].isin(["HIGH", "MEDIUM"])
+
+
+@st.cache_data(show_spinner=False)
+def command_center_stats(data):
+    sif_mask = sif_precursor_flags(data)
+    total = int(len(data))
+    risk_counts = (
+        data["Risk"].value_counts()
+        .reindex(["HIGH", "MEDIUM", "LOW"], fill_value=0)
+    )
+    precursor_counts = data["Precursor"].value_counts().head(8)
+
+    dates = pd.to_datetime(data["Date"], errors="coerce")
+    timeline = (
+        data.assign(_period=dates.dt.to_period("M"))
+        .dropna(subset=["_period"])
+        .groupby("_period").size()
+        .reset_index(name="Reports")
+    )
+    if len(timeline):
+        timeline["Period"] = timeline["_period"].dt.to_timestamp()
+        timeline = timeline[["Period", "Reports"]].sort_values("Period")
+    else:
+        timeline = pd.DataFrame(columns=["Period", "Reports"])
+
+    if "Status" in data.columns:
+        open_alerts = int(
+            data["Status"].astype(str).str.upper().str.strip().eq("OPEN").sum()
+        )
+        open_basis = "From report status field"
+    else:
+        open_alerts = int((sif_mask & data["Risk"].eq("HIGH")).sum())
+        open_basis = "HIGH risk with SIF precursor"
+
+    return {
+        "total": total,
+        "high": int(risk_counts["HIGH"]),
+        "medium": int(risk_counts["MEDIUM"]),
+        "low": int(risk_counts["LOW"]),
+        "sif": int(sif_mask.sum()),
+        "open_alerts": open_alerts,
+        "open_basis": open_basis,
+        "precursor_counts": precursor_counts,
+        "timeline": timeline,
+    }
+
+
+@st.cache_data(show_spinner=False)
+def recent_signals(data, limit=8):
+    """Most recent high-signal observations, newest first."""
+    working = data.copy()
+    working["_date"] = pd.to_datetime(working["Date"], errors="coerce")
+    working["_rank"] = working["Risk"].map({"HIGH": 0, "MEDIUM": 1, "LOW": 2}).fillna(3)
+    working = working.sort_values(["_date", "_rank"], ascending=[False, True])
+    return working.head(limit)
+
+
+def _pct(part, whole):
+    return f"{(part / whole * 100):.1f}%" if whole else "N/A"
+
+
 if page == "Command Center":
 
-    _logo_b64 = get_logo_base64()
-    _logo_tag = (
-        f'<img src="data:image/png;base64,{_logo_b64}" '
-        f'style="max-width:340px; width:100%; height:auto; margin-bottom:18px;" />'
-        if _logo_b64 else ""
+    stats = command_center_stats(df)
+    total_reports = stats["total"]
+    high_count = stats["high"]
+    medium_count = stats["medium"]
+    low_count = stats["low"]
+    sif_count = stats["sif"]
+
+    _recall_text = (
+        f"{high_risk_recall * 100:.1f}%"
+        if high_risk_recall == high_risk_recall  # guards NaN
+        else "N/A"
+    )
+
+    page_header(
+        "Safety Intelligence Command Center",
+        "AI-assisted analysis of unsafe acts, unsafe conditions and "
+        "near-miss observations.",
+        meta_html=(
+            f"{datetime.now().strftime('%d %b %Y | %I:%M %p')}<br>"
+            f"All data from internal dataset ({total_reports:,} reports)<br>"
+            f"Dataset last updated {LAST_UPDATED_TEXT}"
+        ),
     )
 
     render_html(
         f"""
-        <div class="hero">
-
-            <div style="position:absolute; inset:0; overflow:hidden; border-radius:20px;">
-                <img src="{image_src('refinery')}" alt="{image_alt('refinery')}"
-                     style="width:100%; height:100%; object-fit:cover; opacity:0.38;" />
-                <div style="position:absolute; inset:0; background:linear-gradient(100deg, #0A2226 30%, rgba(10,34,38,0.55) 65%, rgba(10,34,38,0.15) 100%);"></div>
-            </div>
-
-            <div style="position:relative; z-index:1;">
-
-            {_logo_tag}
-
-            <div class="status-badge">
-                LIVE · MONITORING ACTIVE
-            </div>
-
-            <div class="hero-subtitle">
-                A smarter way to catch safety risks before they
-                become incidents. This platform reads through daily
-                safety observations, unsafe acts and near-miss
-                reports, and automatically flags the ones most
-                likely to lead to a serious injury &mdash; so your
-                HSE team can act on the right cases first, with
-                clear reasoning and recommended next steps for
-                every alert.
-            </div>
-
-            </div>
-
-        </div>
-        """
-    )
-
-    # Supporting visual: oil & gas infrastructure beside the project story.
-    render_html(
-        f"""
-        <div class="image-feature" style="margin:18px 0 24px;">
-            <div class="image-feature-media">
-                <img src="{image_src('oil_infrastructure')}" alt="{image_alt('oil_infrastructure')}" loading="lazy" />
-                <div class="image-overlay"></div>
-                <div class="image-caption">Oil &amp; gas infrastructure · field-to-facility safety context</div>
-            </div>
-            <div class="image-feature-copy">
-                <div class="eyebrow">PROJECT OVERVIEW</div>
-                <div class="feature-title">AI + NLP for proactive OIL safety intelligence</div>
-                <div class="feature-text">
-                    OilSafe Intelligence connects operational observations with NLP-based SIF screening,
-                    evidence extraction, barrier analysis and HSE decision support. The visuals reinforce
-                    the industrial context while the underlying reports, risk signals and analytics remain the core of the platform.
-                </div>
-                <div class="feature-tags">
-                    <span>Oil &amp; Gas</span><span>SIF Detection</span><span>HSE Analytics</span>
-                </div>
+        <div class="command-hero">
+            <div class="command-hero-bg"></div>
+            <div class="command-hero-content">
+                <div class="eyebrow">OIL INDIA · HSE SAFETY INTELLIGENCE</div>
+                <div class="command-title">Safety Intelligence Command Center</div>
+                <div class="command-subtitle">AI-assisted analysis of unsafe acts, unsafe conditions and near-miss observations.</div>
             </div>
         </div>
         """
     )
 
     render_html(
-        f"""
-        <div class="visual-strip" style="margin:0 0 24px;">
-            <img src="{image_src('safety_workers')}" alt="{image_alt('safety_workers')}" loading="lazy" />
-            <div class="visual-strip-overlay"></div>
-            <div class="visual-strip-copy">
-                <div class="eyebrow">WORKER SAFETY</div>
-                <div class="visual-strip-title">People, protection and prevention at the worksite</div>
-                <div class="visual-strip-text">PPE, exclusion zones, isolation and other controls are evaluated alongside the narrative to identify credible SIF pathways.</div>
-            </div>
-        </div>
-        <div class="visual-strip compact" style="margin:0 0 24px;">
-            <img src="{image_src('refinery_storage')}" alt="{image_alt('refinery_storage')}" loading="lazy" />
-            <div class="visual-strip-overlay"></div>
-            <div class="visual-strip-copy">
-                <div class="eyebrow">PROCESS &amp; INFRASTRUCTURE</div>
-                <div class="visual-strip-title">Refinery assets and process-safety context</div>
-                <div class="visual-strip-text">Industrial equipment, storage systems and process hazards provide the physical context behind safety observations and SIF precursor analysis.</div>
-            </div>
-        </div>
-        """
+        f"""<div class="visual-strip" style="margin:0 0 18px;"><img src="{image_src('refinery_storage')}" alt="{image_alt('refinery_storage')}" loading="lazy" /><div class="visual-strip-overlay"></div><div class="visual-strip-copy"><div class="eyebrow">OIL &amp; GAS OPERATIONS</div><div class="visual-strip-title">Operational context for HSE intelligence</div><div class="visual-strip-text">Industrial assets, field observations and safety narratives are brought together to support structured HSE review.</div>{image_credit('refinery_storage')}</div></div>"""
     )
 
-    total_reports = len(df)
-    high_count = int((df["Risk"] == "HIGH").sum())
-    medium_count = int((df["Risk"] == "MEDIUM").sum())
-    low_count = int((df["Risk"] == "LOW").sum())
-    precursor_count = int(df["Precursor"].nunique())
-    near_miss_count = int(
-        (df["Report Type"] == "Near Miss").sum()
-    )
+    # ---------------- KPI ROW ----------------
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    with k1:
+        metric_card("▣", "Total Reports", total_reports,
+                    "Loaded from internal dataset", "cyan")
+    with k2:
+        metric_card("▲", "High-Risk Reports", high_count,
+                    f"{_pct(high_count, total_reports)} of total", "danger")
+    with k3:
+        metric_card("◬", "SIF Precursors", sif_count,
+                    f"{_pct(sif_count, total_reports)} of total", "warn")
+    with k4:
+        metric_card("◉", "Open Alerts", stats["open_alerts"],
+                    stats["open_basis"], "danger")
+    with k5:
+        metric_card("◎", "High-Risk Recall", _recall_text,
+                    "Hold-out set, HIGH class", "safe")
+    with k6:
+        metric_card("●", "Model Status", "Operational",
+                    f"TF-IDF + LR · {MODEL_VERSION}", "safe")
 
-    with c1:
-        metric_card("📋", "Safety Observations", total_reports, "Loaded from 5,000-record dataset", "cyan")
-    with c2:
-        metric_card("🔥", "High Risk", high_count, "Needs priority review", "danger")
-    with c3:
-        metric_card("⚠️", "Medium Risk", medium_count, "Monitor closely", "warn")
-    with c4:
-        metric_card("🧬", "Precursor Classes", precursor_count, "Distinct signal types", "cyan")
-    with c5:
-        metric_card("🔔", "Near Miss Alerts", near_miss_count, "Early-warning events", "safe")
+    # ---------------- ANALYTICS GRID ----------------
+    g1, g2, g3 = st.columns([1, 1.15, 1.15])
 
-    render_html(
-        '<div class="section-title">Executive Safety Overview</div>'
-    )
+    with g1:
+        panel_open("Risk Overview")
 
-    left, right = st.columns([1.25, 1])
-
-    with left:
-
-        risk_counts = (
-            df["Risk"]
-            .value_counts()
-            .reindex(
-                ["HIGH", "MEDIUM", "LOW"],
-                fill_value=0,
-            )
-            .reset_index()
-        )
-
-        risk_counts.columns = ["Risk", "Reports"]
-
-        fig = px.bar(
-            risk_counts,
-            x="Risk",
-            y="Reports",
-            color="Risk",
+        donut = px.pie(
+            names=["High Risk", "Medium Risk", "Low Risk"],
+            values=[high_count, medium_count, low_count],
+            hole=0.68,
+            color=["High Risk", "Medium Risk", "Low Risk"],
             color_discrete_map={
-                "HIGH": "#FF6B6B",
-                "MEDIUM": "#FFC857",
-                "LOW": "#00A878",
+                "High Risk": RISK_COLORS["HIGH"],
+                "Medium Risk": RISK_COLORS["MEDIUM"],
+                "Low Risk": RISK_COLORS["LOW"],
             },
-            title="Risk Distribution",
         )
-
-        fig.update_layout(showlegend=False)
-
+        donut.update_traces(
+            textinfo="none",
+            marker=dict(line=dict(color="#151C25", width=2)),
+            hovertemplate="%{label}: %{value:,} (%{percent})<extra></extra>",
+        )
+        donut.add_annotation(
+            text=(
+                f"<b style='font-size:24px'>{total_reports:,}</b>"
+                "<br><span style='font-size:10px;letter-spacing:1px'>TOTAL REPORTS</span>"
+            ),
+            showarrow=False, font=dict(color="#F2F5F7"),
+        )
         st.plotly_chart(
-            professional_chart(fig),
+            professional_chart(donut, height=250, legend=False),
             use_container_width=True,
         )
-
-    with right:
-
-        precursor_counts = (
-            df["Precursor"]
-            .value_counts()
-            .head(8)
-            .reset_index()
+        chart_expand_button(
+            "Risk Overview",
+            professional_chart(donut, height=520, legend=True),
+            "expand_dashboard_risk",
+            "Distribution of the current dataset across high, medium and low risk classifications."
         )
 
-        precursor_counts.columns = [
-            "Precursor",
-            "Reports",
-        ]
-
-        fig = px.bar(
-            precursor_counts,
-            x="Reports",
-            y="Precursor",
-            orientation="h",
-            title="Top SIF Precursor Signals",
+        legend_rows = "".join(
+            f"""
+            <div class="legend-row" style="justify-content:space-between;">
+                <div style="display:flex;gap:9px;align-items:center;">
+                    <span class="legend-dot" style="background:{color};margin-top:0;"></span>
+                    <span class="legend-name">{name}</span>
+                </div>
+                <div class="legend-desc" style="font-family:var(--mono);">
+                    {count:,} &nbsp;·&nbsp; {_pct(count, total_reports)}
+                </div>
+            </div>
+            """
+            for name, count, color in [
+                ("High Risk", high_count, RISK_COLORS["HIGH"]),
+                ("Medium Risk", medium_count, RISK_COLORS["MEDIUM"]),
+                ("Low Risk", low_count, RISK_COLORS["LOW"]),
+            ]
         )
+        render_html(legend_rows)
+        panel_close()
 
-        fig.update_traces(
-            marker_color="#36C5F0"
-        )
+    with g2:
+        panel_open("SIF Precursor Landscape", "Top categories")
 
-        fig.update_layout(
-            yaxis=dict(
-                categoryorder="total ascending"
+        precursor_counts = stats["precursor_counts"]
+        if len(precursor_counts):
+            precursor_frame = precursor_counts.reset_index()
+            precursor_frame.columns = ["Precursor", "Reports"]
+
+            bar = px.bar(
+                precursor_frame,
+                x="Reports", y="Precursor", orientation="h",
             )
-        )
+            bar.update_traces(
+                marker_color="#3A7CA5",
+                hovertemplate="%{y}: %{x:,}<extra></extra>",
+            )
+            bar.update_layout(
+                yaxis=dict(categoryorder="total ascending", title=None),
+                xaxis=dict(title=None),
+            )
+            st.plotly_chart(
+                professional_chart(bar, height=328, legend=False),
+                use_container_width=True,
+            )
+            chart_expand_button(
+                "SIF Precursor Landscape",
+                professional_chart(bar, height=560, legend=False),
+                "expand_dashboard_precursors",
+                "Distribution of detected SIF precursor categories in the current safety dataset."
+            )
+        else:
+            render_html('<div class="card-text">Not available.</div>')
+        panel_close()
 
-        st.plotly_chart(
-            professional_chart(fig),
-            use_container_width=True,
-        )
+    with g3:
+        panel_open("Reports Over Time", "Monthly volume")
 
+        timeline = stats["timeline"]
+        if len(timeline):
+            line = px.line(timeline, x="Period", y="Reports", markers=True)
+            line.update_traces(
+                line=dict(color="#3E8E5A", width=2),
+                marker=dict(size=5, color="#3E8E5A"),
+                hovertemplate="%{x|%b %Y}: %{y:,} reports<extra></extra>",
+            )
+            line.update_layout(
+                xaxis=dict(title=None),
+                yaxis=dict(title="Reports"),
+            )
+            st.plotly_chart(
+                professional_chart(line, height=560, legend=False),
+                use_container_width=True,
+            )
+            chart_expand_button(
+                "Reports Over Time",
+                professional_chart(line, height=560, legend=False),
+                "expand_dashboard_timeline",
+                "Monthly observation volume based on the current dataset."
+            )
+        else:
+            render_html('<div class="card-text">No usable report dates in the dataset.</div>')
+        panel_close()
+
+    # ---------------- RECENT SAFETY SIGNALS ----------------
+    panel_open("Recent Safety Signals", "View All Reports →")
+
+    signals = recent_signals(df)
+    has_status = "Status" in df.columns
+    rows = []
+    for _, record in signals.iterrows():
+        report_date = record.get("_date")
+        date_text = (
+            report_date.strftime("%d %b %Y")
+            if pd.notna(report_date) else "N/A"
+        )
+        if has_status:
+            status_value = record.get("Status", "")
+        else:
+            status_value = {
+                "HIGH": "OPEN",
+                "MEDIUM": "UNDER REVIEW",
+            }.get(str(record["Risk"]).upper(), "CLOSED")
+
+        rows.append([
+            f'<span class="mono">{escape(str(record["Report ID"]))}</span>',
+            date_text,
+            escape(str(record["Location"])),
+            escape(str(record["Category"])),
+            risk_badge(record["Risk"]),
+            escape(str(record["Precursor"])),
+            status_badge(status_value),
+        ])
+
+    hse_table(
+        ["Report ID", "Date", "Location", "Category", "Risk",
+         "SIF Precursor", "Triage Status" if not has_status else "Status"],
+        rows,
+    )
+    if not has_status:
+        render_html(
+            '<div class="meta-line" style="margin-top:10px;">'
+            "Triage status is derived from the assessed risk level — the "
+            "dataset carries no closure field."
+            "</div>"
+        )
+    panel_close()
+
+    # ---------------- VISUAL SAFETY MODULES ----------------
+    section_title("Interactive Safety Modules")
     render_html(
-        '<div class="section-title">Management Focus Areas</div>'
+        '<div class="meta-line" style="margin:-4px 0 14px;">'
+        'Select a module to open a larger, context-rich safety view.'
+        '</div>'
+    )
+    v1, v2, v3 = st.columns(3)
+    with v1:
+        interactive_image_card(
+            "safety_workers",
+            "PPE & Field Safety",
+            "Visual context for worker protection, inspection discipline and field-level hazard awareness.",
+            "visual_ppe_details",
+        )
+    with v2:
+        interactive_image_card(
+            "industrial_maintenance",
+            "Industrial Maintenance",
+            "Maintenance activities can introduce high-consequence exposure when isolation, access and controls are inadequate.",
+            "visual_maintenance_details",
+        )
+    with v3:
+        interactive_image_card(
+            "offshore_safety",
+            "Offshore Operations",
+            "Offshore work environments combine process, lifting, energy-isolation and work-at-height hazards.",
+            "visual_offshore_details",
+        )
+
+    # ---------------- SIF INTELLIGENCE WORKFLOW HERO ----------------
+    render_html(
+        """
+        <div class="sif-workflow-hero">
+            <div class="sif-workflow-kicker">SIF INTELLIGENCE WORKFLOW</div>
+            <div class="sif-workflow-title">Detect → Understand → Prioritize → Simulate → Prevent</div>
+            <div class="sif-workflow-sub">
+                Convert unstructured safety observations into explainable SIF precursor insights,
+                preventive barriers and accountable next actions — in one continuous workflow.
+            </div>
+            <div class="sif-workflow-steps">
+                <span>01 Detect</span><span>02 Explain</span><span>03 Prioritize</span>
+                <span>04 Simulate</span><span>05 Prevent</span>
+            </div>
+        </div>
+        """
     )
 
-    f1, f2, f3 = st.columns(3)
+    # ---------------- QUICK ACTIONS + RISK LEGEND ----------------
+    q_col, l_col = st.columns([1.6, 1])
 
-    with f1:
+    with q_col:
+        panel_open("Quick Actions")
+        a1, a2 = st.columns(2)
+        quick_actions = [
+            (a1, "◈   Assess New Observation", "AI Assessment"),
+            (a2, "◎   Search Similar Reports", "Similar Reports"),
+            (a1, "▦   View Analytics", "Safety Analytics"),
+            (a2, "⬡   Browse Control Library", "Control Library"),
+        ]
+        for column, caption, destination in quick_actions:
+            with column:
+                if st.button(caption, key=f"qa_{destination}", use_container_width=True):
+                    st.session_state.page = destination
+                    st.rerun()
+        panel_close()
+
+    with l_col:
+        panel_open("Risk Legend")
+        legend_items = [
+            ("HIGH RISK", "Immediate attention required", RISK_COLORS["HIGH"]),
+            ("MEDIUM RISK", "Monitor and manage", RISK_COLORS["MEDIUM"]),
+            ("LOW RISK", "No immediate action", RISK_COLORS["LOW"]),
+        ]
         render_html(
-            f"""
-            <div class="high-card">
-                <div class="alert-title">
-                    Immediate Attention
-                </div>
-                <div style="
-                    color:#FF6B6B;
-                    font-size:28px;
-                    font-weight:750;
-                    margin-bottom:8px;
-                ">
-                    {high_count}
-                </div>
-                <div class="alert-text">
-                    High-risk observations requiring priority
-                    HSE review and control verification.
-                </div>
-            </div>
-            """
-        )
-
-    with f2:
-        top_precursor = df["Precursor"].value_counts().index[0]
-
-        render_html(
-            f"""
-            <div class="medium-card">
-                <div class="alert-title">
-                    Leading SIF Signal
-                </div>
-                <div style="
-                    color:#FFC857;
-                    font-size:21px;
-                    font-weight:750;
-                    margin-bottom:8px;
-                ">
-                    {top_precursor}
-                </div>
-                <div class="alert-text">
-                    Most frequently observed precursor category
-                    in the demonstration dataset.
-                </div>
-            </div>
-            """
-        )
-
-    with f3:
-        render_html(
-            """
-            <div class="low-card">
-                <div class="alert-title">
-                    Prevention Strategy
-                </div>
-                <div style="
-                    color:#00A878;
-                    font-size:21px;
-                    font-weight:750;
-                    margin-bottom:8px;
-                ">
-                    LEADING INDICATORS
-                </div>
-                <div class="alert-text">
-                    Use observations and near misses to
-                    strengthen controls before incidents occur.
-                </div>
-            </div>
-            """
-        )
-
-    render_html(
-        '<div class="section-title">AI Safety Workflow</div>'
-    )
-
-    w1, w2, w3, w4 = st.columns(4)
-
-    workflow = [
-        (w1, "01", "Capture",
-         "Every safety observation, unsafe act and near miss is logged in one place."),
-        (w2, "02", "Detect",
-         "Each report is automatically screened for risk level and likely warning signs."),
-        (w3, "03", "Explain",
-         "Every alert comes with the supporting evidence, in plain language."),
-        (w4, "04", "Act",
-         "Clear, ready-to-use recommendations help teams respond to what matters most first."),
-    ]
-
-    for col, number, title, text in workflow:
-        with col:
-            render_html(
+            "".join(
                 f"""
-                <div class="workflow-step">
-                    <div class="workflow-number">{number}</div>
-                    <div class="workflow-title">{title}</div>
-                    <div class="workflow-text">{text}</div>
+                <div class="legend-row">
+                    <span class="legend-dot" style="background:{color};"></span>
+                    <div>
+                        <div class="legend-name">{name}</div>
+                        <div class="legend-desc">{desc}</div>
+                    </div>
                 </div>
                 """
+                for name, desc, color in legend_items
             )
+            + '<div class="meta-line" style="margin-top:10px;">'
+              "Based on ML prediction and safety context analysis."
+              "</div>"
+        )
+        panel_close()
 
     render_html(
         """
-        <div style="
-            margin-top:25px;
-            padding:15px 18px;
-            background:#0D272B;
-            border:1px solid #1F3B3E;
-            border-radius:10px;
-            color:rgba(241,245,249,0.66);
-            font-size:12px;
-            line-height:1.6;
-        ">
-            <b style="color:rgba(241,245,249,0.8);">Demonstration Data Notice:</b>
-            This prototype uses synthetic OIL-domain safety observations
-            for demonstration and model-development purposes. It does
-            not represent actual OIL incident statistics or official
-            operational risk assessments.
+        <div class="info-card">
+            <div class="alert-title">Demonstration Data Notice</div>
+            <div class="alert-text">
+                This prototype runs on synthetic OIL-domain safety
+                observations for demonstration and model-development
+                purposes. It does not represent actual OIL incident
+                statistics or official operational risk assessments.
+            </div>
         </div>
         """
     )
@@ -3395,6 +3578,11 @@ elif page == "AI Assessment":
         "Analyse an observation and identify potential SIF precursor signals.",
     )
 
+
+    render_html(
+        f"""<div class="visual-strip" style="margin:0 0 18px;"><img src="{image_src('ai_analytics')}" alt="{image_alt('ai_analytics')}" loading="lazy" /><div class="visual-strip-overlay"></div><div class="visual-strip-copy"><div class="eyebrow">AI / NLP LAYER</div><div class="visual-strip-title">From narrative text to explainable safety signals</div><div class="visual-strip-text">NLP classification, evidence extraction, SIF scoring and barrier context work together before an HSE decision is made.</div></div></div>"""
+    )
+
     render_html(
         """
         <div class="card" style="margin-bottom:20px;">
@@ -3406,20 +3594,6 @@ elif page == "AI Assessment":
                 narrative. The NLP engine will classify risk,
                 identify a potential SIF precursor, highlight
                 supporting evidence and recommend preventive controls.
-            </div>
-        </div>
-        """
-    )
-
-    render_html(
-        f"""
-        <div class="visual-strip" style="margin:0 0 18px;">
-            <img src="{image_src('ai_analytics')}" alt="{image_alt('ai_analytics')}" loading="lazy" />
-            <div class="visual-strip-overlay"></div>
-            <div class="visual-strip-copy">
-                <div class="eyebrow">AI / NLP LAYER</div>
-                <div class="visual-strip-title">From narrative text to explainable safety signals</div>
-                <div class="visual-strip-text">NLP classification, evidence extraction, SIF scoring and barrier context work together before an HSE decision is made.</div>
             </div>
         </div>
         """
@@ -3482,7 +3656,7 @@ elif page == "AI Assessment":
         }.get(result["priority"], "cyan")
 
         with r1:
-            metric_card("🚨", "Risk Level", result["risk"], "Context-adjusted severity", risk_tone)
+            metric_card("▲", "Risk Level", result["risk"], "Context-adjusted severity", risk_tone)
         with r2:
             active_precursor = result.get("active_precursor", result["precursor"])
             metric_card(
@@ -3501,7 +3675,7 @@ elif page == "AI Assessment":
                 "cyan",
             )
         with r4:
-            metric_card("⚡", "Action Priority", result["priority"], "Recommended response", priority_tone)
+            metric_card("◬", "Action Priority", result["priority"], "Recommended response", priority_tone)
 
         # Show the auditable SIF pathway so the assessment explains why a
         # high-energy rule changed or reinforced the ML prediction.
@@ -3520,7 +3694,7 @@ elif page == "AI Assessment":
 
         render_html(
             f"""
-            <div class="card" style="margin-bottom:18px;border-left:3px solid #36C5F0;">
+            <div class="card" style="margin-bottom:18px;border-left:3px solid #D67A21;">
                 <div class="card-title">SIF Hazard Pathway</div>
                 <div style="color:rgba(241,245,249,0.85);font-size:13px;line-height:1.7;">
                     {pathway_note}
@@ -3533,7 +3707,7 @@ elif page == "AI Assessment":
 
         context_title = escape(str(result.get("context_decision", "Context validation")))
         context_note = escape(str(result.get("context_note", "The narrative was evaluated for exposure and control context.")))
-        context_color = "#00A878" if result.get("context_decision") == "CONTROLLED / NO ACTIVE EXPOSURE" else "#FF6B6B" if result.get("context_decision") == "ACTIVE EXPOSURE / CONTROL GAP" else "#FFC857"
+        context_color = "#52815A" if result.get("context_decision") == "CONTROLLED / NO ACTIVE EXPOSURE" else "#B8452F" if result.get("context_decision") == "ACTIVE EXPOSURE / CONTROL GAP" else "#CC9A2E"
         render_html(
             f"""
             <div class="card" style="margin-bottom:18px;border-left:3px solid {context_color};">
@@ -3543,6 +3717,57 @@ elif page == "AI Assessment":
                 </div>
                 <div style="margin-top:9px;color:rgba(241,245,249,0.70);font-size:12.5px;line-height:1.6;">
                     {context_note}
+                </div>
+            </div>
+            """
+        )
+
+        render_html('<div class="section-title">AI Reasoning Trail</div>')
+        trail_items = [
+            ("01", "Narrative ingestion", "The submitted observation is retained as the source narrative."),
+            ("02", "NLP signal extraction", f"Detected evidence: {len(result.get('evidence', []))} signal(s) linked to the assessed precursor."),
+            ("03", "Risk fusion", f"Risk outcome: {result.get('risk', 'N/A')} with SIF screening score {result.get('sif_score', 0)}/100."),
+            ("04", "Context validation", str(result.get('context_decision', 'Context validation applied.'))),
+            ("05", "Control recommendation", f"{len(result.get('actions', []))} preventive action(s) returned for review."),
+        ]
+        trail_html = '<div class="foresight-shell">'
+        for n, title, detail in trail_items:
+            trail_html += f'<div style="display:flex;gap:12px;align-items:flex-start;margin:10px 0;"><div style="min-width:30px;height:30px;border-radius:50%;background:rgba(58,124,165,.18);border:1px solid rgba(58,124,165,.35);display:flex;align-items:center;justify-content:center;color:#75B6D4;font-size:10px;font-weight:900;">{n}</div><div><b style="color:#F2F5F7;font-size:13px;">{escape(title)}</b><div style="color:rgba(241,245,249,.60);font-size:11px;line-height:1.5;margin-top:2px;">{escape(detail)}</div></div></div>'
+        trail_html += '</div>'
+        render_html(trail_html)
+
+        # Judge-facing explanation: observable evidence -> hazard -> precursor -> priority.
+        evidence_items = [str(x) for x in result.get("evidence", []) if str(x).strip()]
+        evidence_text = ", ".join(evidence_items[:4]) if evidence_items else "No discrete evidence tags returned."
+        hazard_text = str(result.get("hazard_category", "Operational safety hazard"))
+        precursor_text = str(result.get("active_precursor", result.get("precursor", "SIF precursor")))
+        priority_text = str(result.get("priority", "Review required"))
+
+        render_html(
+            f"""
+            <div class="card" style="margin:0 0 18px 0;border-left:3px solid #36C5F0;">
+                <div class="card-title">Why did AI flag this?</div>
+                <div style="color:rgba(241,245,249,0.55);font-size:10.5px;line-height:1.5;margin-bottom:12px;">
+                    Explainability layer based on observable report signals and the existing assessment output.
+                    It does not expose hidden model chain-of-thought.
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">
+                    <div style="padding:10px;border:1px solid rgba(241,245,249,.08);border-radius:9px;background:rgba(241,245,249,.025);">
+                        <div style="font-size:9px;color:#36C5F0;font-weight:800;letter-spacing:.8px;">01 · EVIDENCE</div>
+                        <div style="font-size:11px;color:rgba(241,245,249,.78);margin-top:5px;">{escape(evidence_text)}</div>
+                    </div>
+                    <div style="padding:10px;border:1px solid rgba(241,245,249,.08);border-radius:9px;background:rgba(241,245,249,.025);">
+                        <div style="font-size:9px;color:#36C5F0;font-weight:800;letter-spacing:.8px;">02 · HAZARD</div>
+                        <div style="font-size:11px;color:rgba(241,245,249,.78);margin-top:5px;">{escape(hazard_text)}</div>
+                    </div>
+                    <div style="padding:10px;border:1px solid rgba(241,245,249,.08);border-radius:9px;background:rgba(241,245,249,.025);">
+                        <div style="font-size:9px;color:#36C5F0;font-weight:800;letter-spacing:.8px;">03 · PRECURSOR</div>
+                        <div style="font-size:11px;color:rgba(241,245,249,.78);margin-top:5px;">{escape(precursor_text)}</div>
+                    </div>
+                    <div style="padding:10px;border:1px solid rgba(241,245,249,.08);border-radius:9px;background:rgba(241,245,249,.025);">
+                        <div style="font-size:9px;color:#36C5F0;font-weight:800;letter-spacing:.8px;">04 · PRIORITY</div>
+                        <div style="font-size:11px;color:rgba(241,245,249,.78);margin-top:5px;">{escape(priority_text)}</div>
+                    </div>
                 </div>
             </div>
             """
@@ -3595,12 +3820,34 @@ elif page == "AI Assessment":
                         font-size:13px;
                         margin-bottom:9px;
                     ">
-                        • {action}
+                        • {escape(str(action))}
                     </div>
                     """
                 )
 
             render_html("</div>")
+
+        if st.button(
+            "⛶  Expand AI Assessment",
+            key="expand_ai_assessment",
+            use_container_width=True,
+        ):
+            show_safety_modal(
+                "AI Safety Assessment",
+                "Expanded view of the current assessment. Values are taken directly from the existing assessment result.",
+                image_key="ai_analytics",
+                metrics={
+                    "Risk": str(result.get("risk", "N/A")),
+                    "Priority": str(result.get("priority", "N/A")),
+                    "SIF Score": f"{float(result.get('sif_score', 0)):.1f}",
+                    "Precursor": str(
+                        result.get(
+                            "active_precursor",
+                            result.get("precursor", "N/A"),
+                        )
+                    ),
+                },
+            )
 
         # --------------------------------------------------
         # SAFETY BARRIER ANALYSIS
@@ -3611,15 +3858,15 @@ elif page == "AI Assessment":
         )
 
         barrier_tone = {
-            "Failed": "#FF6B6B",
-            "Degraded": "#FFC857",
-            "Intact": "#00A878",
+            "Failed": "#B8452F",
+            "Degraded": "#CC9A2E",
+            "Intact": "#52815A",
         }
 
         overall_tone = {
-            "Critical Barrier Failure": "#FF6B6B",
-            "Barrier Degradation": "#FFC857",
-            "Barriers Intact": "#00A878",
+            "Critical Barrier Failure": "#B8452F",
+            "Barrier Degradation": "#CC9A2E",
+            "Barriers Intact": "#52815A",
         }.get(result["barrier_status"], "rgba(241,245,249,0.66)")
 
         render_html(
@@ -3632,7 +3879,7 @@ elif page == "AI Assessment":
                     border-radius:999px;
                     font-size:12px;
                     font-weight:700;
-                    color:#0C2529;
+                    color:#20232A;
                     background:{overall_tone};
                 ">
                     {result["barrier_status"]}
@@ -3652,7 +3899,7 @@ elif page == "AI Assessment":
                     margin-bottom:8px;
                 ">
                     <div>
-                        <div style="color:#F1F5F9;font-size:13px;font-weight:700;">
+                        <div style="color:#ECE8DF;font-size:13px;font-weight:700;">
                             {barrier["barrier"]}
                         </div>
                         <div style="color:rgba(241,245,249,0.45);font-size:11px;">
@@ -3664,7 +3911,7 @@ elif page == "AI Assessment":
                         border-radius:999px;
                         font-size:11px;
                         font-weight:700;
-                        color:#0C2529;
+                        color:#20232A;
                         background:{color};
                     ">
                         {barrier["status"]}
@@ -3687,7 +3934,7 @@ elif page == "AI Assessment":
                 <div class="card-title">Review Status</div>
                 <div class="card-text">
                     This observation is currently
-                    <b style="color:#FFC857;">{result["review_status"]}</b>.
+                    <b style="color:#CC9A2E;">{result["review_status"]}</b>.
                     An HSE reviewer must sign off before the case is
                     closed out.
                 </div>
@@ -3792,6 +4039,10 @@ elif page == "SIF Early Warning":
     )
 
     render_html(
+        f"""<div class="visual-strip compact" style="margin:0 0 18px;"><img src="{image_src('safety_worker')}" alt="{image_alt('safety_worker')}" loading="lazy" /><div class="visual-strip-overlay"></div><div class="visual-strip-copy"><div class="eyebrow">FIELD SAFETY SIGNALS</div><div class="visual-strip-title">Early-warning review for high-risk observations</div><div class="visual-strip-text">Prioritise observations for HSE review without treating model output as a confirmed incident.</div>{image_credit('safety_worker')}</div></div>"""
+    )
+
+    render_html(
         """
         <div class="high-card">
             <div class="alert-title">
@@ -3810,11 +4061,32 @@ elif page == "SIF Early Warning":
 
     a, b, c = st.columns(3)
     with a:
-        metric_card("🔥", "High-Risk Observations", len(high_df), "Requires priority review", "danger")
+        metric_card("▲", "High-Risk Observations", len(high_df), "Requires priority review", "danger")
     with b:
-        metric_card("🧬", "Precursor Categories", high_df["Precursor"].nunique(), "Distinct signal types", "cyan")
+        metric_card("◈", "Precursor Categories", high_df["Precursor"].nunique(), "Distinct signal types", "cyan")
     with c:
-        metric_card("📍", "Locations Affected", high_df["Location"].nunique(), "Sites reporting risk", "warn")
+        metric_card("▦", "Locations Affected", high_df["Location"].nunique(), "Sites reporting risk", "warn")
+
+    section_title("Safety Focus Areas")
+    sf1, sf2, sf3 = st.columns(3)
+    with sf1:
+        interactive_image_card(
+            "safety_worker", "Field Inspection", 
+            "Inspection evidence and worker observations can provide early signals for HSE review.",
+            "sif_field_inspection_details"
+        )
+    with sf2:
+        interactive_image_card(
+            "refinery_storage", "Process & Storage",
+            "Storage tanks, process areas and energy systems require disciplined barrier management.",
+            "sif_process_details"
+        )
+    with sf3:
+        interactive_image_card(
+            "pipeline_inspection", "Pipeline Inspection",
+            "Inspection observations can be connected with location, category and precursor patterns.",
+            "sif_pipeline_details"
+        )
 
     render_html(
         '<div class="section-title">Priority Observation Register</div>'
@@ -3908,7 +4180,7 @@ elif page == "Report Register":
             font-size:13px;
         ">
             Showing
-            <b style="color:#F1F5F9;">
+            <b style="color:#ECE8DF;">
                 {len(filtered)}
             </b>
             observations
@@ -3953,18 +4225,9 @@ elif page == "Safety Analytics":
         "Explore risk patterns, report types, locations, departments and precursor trends.",
     )
 
+
     render_html(
-        f"""
-        <div class="visual-strip compact" style="margin:0 0 18px;">
-            <img src="{image_src('pipeline_inspection')}" alt="{image_alt('pipeline_inspection')}" loading="lazy" />
-            <div class="visual-strip-overlay"></div>
-            <div class="visual-strip-copy">
-                <div class="eyebrow">FIELD SAFETY & INSPECTION</div>
-                <div class="visual-strip-title">Inspection evidence meets operational safety intelligence</div>
-                <div class="visual-strip-text">Pipeline inspection, worker observations and incident narratives can be connected to precursor trends and control performance.</div>
-            </div>
-        </div>
-        """
+        f"""<div class="visual-strip compact" style="margin:0 0 18px;"><img src="{image_src('pipeline_inspection')}" alt="{image_alt('pipeline_inspection')}" loading="lazy" /><div class="visual-strip-overlay"></div><div class="visual-strip-copy"><div class="eyebrow">FIELD SAFETY &amp; INSPECTION</div><div class="visual-strip-title">Inspection evidence meets operational safety intelligence</div><div class="visual-strip-text">Pipeline inspection, worker observations and incident narratives can be connected to precursor trends and control performance.</div></div></div>"""
     )
 
     tab1, tab2, tab3, tab4 = st.tabs(
@@ -3996,9 +4259,9 @@ elif page == "Safety Analytics":
                 title="Risk by Department",
                 barmode="stack",
                 color_discrete_map={
-                    "HIGH": "#FF6B6B",
-                    "MEDIUM": "#FFC857",
-                    "LOW": "#00A878",
+                    "HIGH": "#B8452F",
+                    "MEDIUM": "#CC9A2E",
+                    "LOW": "#52815A",
                 },
             )
 
@@ -4006,6 +4269,7 @@ elif page == "Safety Analytics":
                 professional_chart(fig),
                 use_container_width=True,
             )
+            chart_expand_button("Risk by Department", professional_chart(fig, 560), "expand_analytics_department")
 
         with c2:
 
@@ -4022,9 +4286,9 @@ elif page == "Safety Analytics":
                 color="Risk",
                 title="Risk by Safety Category",
                 color_discrete_map={
-                    "HIGH": "#FF6B6B",
-                    "MEDIUM": "#FFC857",
-                    "LOW": "#00A878",
+                    "HIGH": "#B8452F",
+                    "MEDIUM": "#CC9A2E",
+                    "LOW": "#52815A",
                 },
             )
 
@@ -4033,9 +4297,10 @@ elif page == "Safety Analytics":
             )
 
             st.plotly_chart(
-                professional_chart(fig, 420),
+                professional_chart(fig, 560),
                 use_container_width=True,
             )
+            chart_expand_button("Risk by Safety Category", professional_chart(fig, 560), "expand_analytics_category")
 
     with tab2:
 
@@ -4059,7 +4324,7 @@ elif page == "Safety Analytics":
         )
 
         fig.update_traces(
-            marker_color="#36C5F0"
+            marker_color="#D67A21"
         )
 
         fig.update_layout(
@@ -4069,9 +4334,10 @@ elif page == "Safety Analytics":
         )
 
         st.plotly_chart(
-            professional_chart(fig, 430),
+            professional_chart(fig, 560),
             use_container_width=True,
         )
+        chart_expand_button("SIF Precursor Distribution", professional_chart(fig, 560), "expand_analytics_precursor")
 
     with tab3:
 
@@ -4088,9 +4354,9 @@ elif page == "Safety Analytics":
             color="Risk",
             title="Safety Observations by Location",
             color_discrete_map={
-                "HIGH": "#FF6B6B",
-                "MEDIUM": "#FFC857",
-                "LOW": "#00A878",
+                "HIGH": "#B8452F",
+                "MEDIUM": "#CC9A2E",
+                "LOW": "#52815A",
             },
         )
 
@@ -4098,6 +4364,8 @@ elif page == "Safety Analytics":
             professional_chart(fig),
             use_container_width=True,
         )
+        chart_expand_button("Observation Type Distribution", professional_chart(fig, 560), "expand_analytics_type")
+        chart_expand_button("Safety Observations by Location", professional_chart(fig, 560), "expand_analytics_location")
 
     with tab4:
 
@@ -4149,13 +4417,13 @@ elif page == "Safety Analytics":
         x1, x2, x3, x4 = st.columns(4)
 
         with x1:
-            metric_card("🎯", "Accuracy", f"{risk_accuracy * 100:.1f}%", tone="cyan")
+            metric_card("◉", "Held-out Accuracy", f"{risk_accuracy * 100:.1f}%", tone="cyan")
         with x2:
-            metric_card("🔍", "Precision", f"{risk_precision * 100:.1f}%", tone="cyan")
+            metric_card("◎", "Precision", f"{risk_precision * 100:.1f}%", tone="cyan")
         with x3:
-            metric_card("📡", "Recall", f"{risk_recall * 100:.1f}%", tone="cyan")
+            metric_card("◈", "Recall", f"{risk_recall * 100:.1f}%", tone="cyan")
         with x4:
-            metric_card("⚖️", "F1", f"{risk_f1 * 100:.1f}%", tone="cyan")
+            metric_card("◫", "F1", f"{risk_f1 * 100:.1f}%", tone="cyan")
 
     with m2:
 
@@ -4175,13 +4443,13 @@ elif page == "Safety Analytics":
         x1, x2, x3, x4 = st.columns(4)
 
         with x1:
-            metric_card("🎯", "Accuracy", f"{precursor_accuracy * 100:.1f}%", tone="safe")
+            metric_card("◉", "Held-out Accuracy", f"{precursor_accuracy * 100:.1f}%", tone="safe")
         with x2:
-            metric_card("🔍", "Precision", f"{precursor_precision * 100:.1f}%", tone="safe")
+            metric_card("◎", "Precision", f"{precursor_precision * 100:.1f}%", tone="safe")
         with x3:
-            metric_card("📡", "Recall", f"{precursor_recall * 100:.1f}%", tone="safe")
+            metric_card("◈", "Recall", f"{precursor_recall * 100:.1f}%", tone="safe")
         with x4:
-            metric_card("⚖️", "F1", f"{precursor_f1 * 100:.1f}%", tone="safe")
+            metric_card("◫", "F1", f"{precursor_f1 * 100:.1f}%", tone="safe")
 
     st.caption(
         "Metrics are calculated on a stratified 20% held-out test split from the 5,000-record training dataset."
@@ -4277,6 +4545,10 @@ elif page == "Control Library":
     )
 
     render_html(
+        f"""<div class="visual-strip compact" style="margin:0 0 18px;"><img src="{image_src('offshore_safety')}" alt="{image_alt('offshore_safety')}" loading="lazy" /><div class="visual-strip-overlay"></div><div class="visual-strip-copy"><div class="eyebrow">CONTROL &amp; BARRIER THINKING</div><div class="visual-strip-title">Controls are mapped to the observed precursor pathway</div><div class="visual-strip-text">Use the library as a decision-support reference for preventive and mitigative controls.</div>{image_credit('offshore_safety')}</div></div>"""
+    )
+
+    render_html(
         f"""
         <div class="card" style="margin-bottom:18px;">
             <div class="card-title">
@@ -4301,8 +4573,8 @@ elif page == "Control Library":
                 display:flex;
                 gap:15px;
                 align-items:flex-start;
-                background:#0F2A2E;
-                border:1px solid #1F3B3E;
+                background:#242629;
+                border:1px solid #33363A;
                 border-radius:9px;
                 padding:15px;
                 margin-bottom:10px;
@@ -4311,9 +4583,9 @@ elif page == "Control Library":
                     min-width:30px;
                     height:30px;
                     border-radius:50%;
-                    background:#0E3A3F;
-                    border:1px solid #2AA7CC;
-                    color:#36C5F0;
+                    background:#2A2D30;
+                    border:1px solid #A85A16;
+                    color:#D67A21;
                     display:flex;
                     align-items:center;
                     justify-content:center;
@@ -4336,9 +4608,240 @@ elif page == "Control Library":
 
 
 # ============================================================
-# METHODOLOGY
+# SIF FORESIGHT — WHAT-IF SAFETY SIMULATOR
 # ============================================================
 
+elif page == "SIF Foresight":
+
+    page_header(
+        "SIF Foresight",
+        "Explore how preventive controls can interrupt a potential SIF escalation pathway.",
+    )
+
+    last = st.session_state.get("last_assessment")
+    default_text = last.get("text", "") if last else ""
+    default_result = last.get("result") if last else None
+
+    render_html(
+        """
+        <div class="foresight-shell">
+            <div class="foresight-kicker">PREVENTIVE SCENARIO LAB</div>
+            <div class="foresight-title">What happens if the barriers change?</div>
+            <div class="foresight-sub">
+                Start from a safety observation, adjust barrier controls, and inspect the
+                resulting <b>scenario index</b> and escalation pathway. This is a decision-support
+                simulation, not a prediction of an incident or probability of harm.
+            </div>
+        </div>
+        """
+    )
+
+    scenario_text = st.text_area(
+        "Scenario narrative",
+        value=default_text,
+        height=130,
+        key="foresight_text",
+        placeholder="Example: Worker performing hot work near a hydrocarbon line without verified gas testing.",
+    )
+
+    if st.button("◈ Analyse Scenario", type="primary", use_container_width=True):
+        if scenario_text.strip():
+            st.session_state.foresight_result = analyze_report(scenario_text)
+        else:
+            st.warning("Enter a scenario narrative first.")
+
+    fr = st.session_state.get("foresight_result", default_result)
+
+    if fr:
+        base_score = float(fr.get("sif_score", 0))
+        risk = str(fr.get("risk", "N/A"))
+        precursor = str(fr.get("active_precursor", fr.get("precursor", "N/A")))
+
+        st.markdown("### Barrier Control Studio")
+        c1, c2 = st.columns(2)
+        with c1:
+            permit = st.toggle("Permit / authorization verified", value=True, key="fs_permit")
+            gas_test = st.toggle("Gas / atmosphere testing verified", value=True, key="fs_gas")
+            isolation = st.toggle("Isolation / energy control verified", value=True, key="fs_isolation")
+        with c2:
+            ppe = st.slider("PPE & critical protection", 0, 100, 85, 5, key="fs_ppe")
+            supervision = st.slider("Supervision / field verification", 0, 100, 80, 5, key="fs_supervision")
+            emergency = st.toggle("Emergency readiness / response barrier", value=True, key="fs_emergency")
+
+        # Transparent scenario-only adjustment. It does not overwrite the trained model result.
+        reduction = (
+            (10 if permit else 0) +
+            (10 if gas_test else 0) +
+            (10 if isolation else 0) +
+            (8 if emergency else 0) +
+            round(ppe * 0.08) +
+            round(supervision * 0.05)
+        )
+        scenario_score = max(0.0, min(100.0, base_score + 28 - reduction))
+        if scenario_score >= 70:
+            scenario_band = "CRITICAL SCENARIO"
+        elif scenario_score >= 50:
+            scenario_band = "ELEVATED SCENARIO"
+        elif scenario_score >= 30:
+            scenario_band = "CONTROLLED SCENARIO"
+        else:
+            scenario_band = "LOWER SCENARIO INDEX"
+
+        st.caption("Scenario index uses transparent barrier adjustments for demonstration; the original AI assessment remains unchanged.")
+
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            metric_card("◈", "Baseline SIF Score", f"{base_score:.0f}/100", risk, "danger" if base_score >= 60 else "warn")
+        with m2:
+            metric_card("◬", "Scenario Index", f"{scenario_score:.0f}/100", scenario_band, "danger" if scenario_score >= 70 else "warn" if scenario_score >= 50 else "safe")
+        with m3:
+            metric_card("⌁", "Barrier Changes", int(4 - sum([permit, gas_test, isolation, emergency])), "Disabled critical barriers", "danger" if not all([permit, gas_test, isolation, emergency]) else "safe")
+        with m4:
+            metric_card("🧬", "Detected Precursor", precursor, "From AI assessment", "cyan")
+
+        left, right = st.columns([1.25, 1])
+        with left:
+            render_html('<div class="section-title">Escalation Pathway</div>')
+            pathway = str(fr.get("pathway", "Unsafe condition → Exposure → SIF precursor → Potential consequence"))
+            nodes = [x.strip() for x in pathway.replace("→", "->").split("->") if x.strip()]
+            if not nodes:
+                nodes = ["Observation", "Exposure", "SIF Precursor", "Potential Consequence"]
+            html = '<div class="foresight-shell">'
+            for j, node in enumerate(nodes[:6]):
+                html += f'<div class="foresight-node"><b>{escape(node)}</b><span>pathway stage {j+1}</span></div>'
+                if j < min(len(nodes), 6)-1:
+                    html += '<div class="foresight-arrow">↓</div>'
+            html += '</div>'
+            render_html(html)
+
+        with right:
+            render_html('<div class="section-title">AI Prevention Path</div>')
+            actions = fr.get("actions", [])
+            if actions:
+                for action in actions[:6]:
+                    render_html(f'<div class="control-pill">✓ {escape(str(action))}</div>')
+            else:
+                render_html('<div class="control-pill">Review site-specific controls before execution.</div>')
+
+        # ---------------- BEFORE -> AFTER CONTROL VIEW ----------------
+        control_labels = []
+        if permit:
+            control_labels.append("Permit / authorization")
+        if gas_test:
+            control_labels.append("Gas / atmosphere testing")
+        if isolation:
+            control_labels.append("Isolation / energy control")
+        if emergency:
+            control_labels.append("Emergency readiness")
+        if ppe >= 60:
+            control_labels.append("PPE strength")
+        if supervision >= 60:
+            control_labels.append("Supervision verification")
+
+        render_html('<div class="section-title">Before → After Controls</div>')
+        render_html(
+            """
+            <div class="foresight-control-note">
+                Transparent scenario view: selected barriers are shown as intervention points
+                in the escalation pathway. This is a decision-support simulation, not a second
+                trained-model prediction or incident probability.
+            </div>
+            """
+        )
+
+        before_col, after_col = st.columns(2)
+        with before_col:
+            render_html('<div class="card"><div class="card-title">BEFORE · Escalation</div>')
+            for idx, node in enumerate(nodes[:6], 1):
+                render_html(
+                    f'<div style="padding:7px 0;color:rgba(241,245,249,.78);font-size:12px;">'
+                    f'<b style="color:#36C5F0;">{idx:02d}</b>&nbsp;&nbsp;{escape(node)}</div>'
+                )
+            render_html('</div>')
+
+        with after_col:
+            render_html('<div class="card"><div class="card-title">AFTER · Barrier Intervention</div>')
+            if control_labels:
+                for idx, node in enumerate(nodes[:6], 1):
+                    render_html(
+                        f'<div style="padding:5px 0;color:rgba(241,245,249,.76);font-size:11.5px;">'
+                        f'<b style="color:#00A878;">{idx:02d}</b>&nbsp;&nbsp;{escape(node)}</div>'
+                    )
+                    if idx <= len(nodes[:6]) - 1:
+                        ctl = control_labels[min(idx - 1, len(control_labels) - 1)]
+                        render_html(
+                            f'<div style="margin:2px 0 5px 28px;color:#00A878;font-size:10px;font-weight:700;">'
+                            f'↳ 🛡 {escape(ctl)} interrupts here</div>'
+                        )
+            else:
+                render_html('<div style="color:rgba(241,245,249,.55);font-size:11px;">No preventive barrier selected.</div>')
+            render_html('</div>')
+
+        # ---------------- RECOMMENDED ACTION OWNER ----------------
+        owner_actions = actions if isinstance(actions, list) else [actions]
+        owner_actions = [str(a) for a in owner_actions if str(a).strip()]
+
+        def _action_owner(action_text):
+            a = action_text.lower()
+            if any(k in a for k in ["permit", "authorization", "ptw"]):
+                return "Permit / Operations"
+            if any(k in a for k in ["gas", "h2s", "atmosphere"]):
+                return "HSE / Gas Testing"
+            if any(k in a for k in ["isolation", "loto", "energy"]):
+                return "Operations / Electrical"
+            if any(k in a for k in ["ppe", "helmet", "harness", "glove"]):
+                return "Supervisor / HSE"
+            if any(k in a for k in ["emergency", "rescue", "first aid"]):
+                return "Emergency Response"
+            if any(k in a for k in ["vehicle", "traffic", "reversing"]):
+                return "Transport / Area Owner"
+            return "Area Owner / Supervisor"
+
+        render_html('<div class="section-title">Recommended Action Owner</div>')
+        if owner_actions:
+            owner_rows = []
+            for idx, action in enumerate(owner_actions[:6]):
+                owner_rows.append({
+                    "Action": action,
+                    "Suggested Owner": _action_owner(action),
+                    "Priority": "P1 — Immediate" if idx == 0 else ("P1 — High" if idx < 3 else "P2 — Planned"),
+                })
+            st.dataframe(
+                pd.DataFrame(owner_rows),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No action list returned; review the control library for site-specific ownership.")
+
+        if st.button("⛶  Expand Foresight Simulation", key="expand_foresight", use_container_width=True):
+            fig = px.bar(
+                pd.DataFrame({
+                    "State": ["Baseline AI score", "Scenario index"],
+                    "Score": [base_score, scenario_score],
+                }),
+                x="State", y="Score", range_y=[0,100],
+                title="Barrier What-If Scenario — Decision Support View",
+            )
+            show_safety_modal(
+                "SIF Foresight — Expanded Simulation",
+                "Scenario index is a transparent demonstration layer. It does not alter the trained model output or represent an incident probability.",
+                image_key="ai_analytics",
+                figure=fig,
+                metrics={
+                    "Baseline": f"{base_score:.0f}/100",
+                    "Scenario": f"{scenario_score:.0f}/100",
+                    "Precursor": precursor,
+                    "Risk": risk,
+                },
+            )
+    else:
+        st.info("Run a scenario above, or first run an assessment from the AI Assessment page.")
+
+
+# ============================================================
+# ADVANCED SIF ENGINE
+# ============================================================
 
 elif page == "Advanced SIF Engine":
 
@@ -4364,10 +4867,10 @@ elif page == "Advanced SIF Engine":
         result = st.session_state.get("v2_result")
         if result:
             a,b,c,d = st.columns(4)
-            with a: metric_card("🚨", "SIF Score", f"{result['sif_score']}/100", result['sif_band'], "danger" if result['sif_score']>=60 else "warn")
-            with b: metric_card("⚡", "Energy Sources", len(result['energy_sources']), "Detected energy mechanisms", "cyan")
-            with c: metric_card("🧍", "Exposure", "YES" if result['exposure']['worker_exposure'] else "Not explicit", "Worker exposure signal", "danger" if result['exposure']['worker_exposure'] else "safe")
-            with d: metric_card("🔁", "Historical Recurrence", result['recurrence_count'], "Matching precursor records", "warn" if result['recurrence_count']>10 else "safe")
+            with a: metric_card("▲", "SIF Score", f"{result['sif_score']}/100", result['sif_band'], "danger" if result['sif_score']>=60 else "warn")
+            with b: metric_card("◬", "Energy Sources", len(result['energy_sources']), "Detected energy mechanisms", "cyan")
+            with c: metric_card("▤", "Exposure", "YES" if result['exposure']['worker_exposure'] else "Not explicit", "Worker exposure signal", "danger" if result['exposure']['worker_exposure'] else "safe")
+            with d: metric_card("◎", "Historical Recurrence", result['recurrence_count'], "Matching precursor records", "warn" if result['recurrence_count']>10 else "safe")
             st.progress(result['sif_score']/100)
             st.info(f"Context validation: {result.get('context_decision','Not evaluated')} · {result.get('context_note','')}")
             st.subheader("Potential consequence")
@@ -4434,9 +4937,9 @@ elif page == "Advanced SIF Engine":
         st.subheader("Safety-critical model QA")
         recall, fn = false_negative_metrics(y_test, risk_predictions)
         q1,q2,q3=st.columns(3)
-        with q1: metric_card("📡", "HIGH Recall", f"{recall*100:.1f}%", "Safety-focused recall", "safe" if recall>=0.9 else "danger")
-        with q2: metric_card("⚠️", "HIGH False Negatives", fn, "Critical review queue", "danger" if fn else "safe")
-        with q3: metric_card("🧪", "Test Split", "20%", "Held-out evaluation", "cyan")
+        with q1: metric_card("◈", "HIGH Recall", f"{recall*100:.1f}%", "Safety-focused recall", "safe" if recall>=0.9 else "danger")
+        with q2: metric_card("◬", "HIGH False Negatives", fn, "Critical review queue", "danger" if fn else "safe")
+        with q3: metric_card("◫", "Test Split", "20%", "Held-out evaluation", "cyan")
         st.write("For deployment, validate on approved historical OIL records and monitor false negatives, class drift, calibration and subgroup performance.")
         st.subheader("Semantic model availability")
         st.write("Transformer embeddings:", "Available" if SENTENCE_TRANSFORMERS_AVAILABLE else "Optional package not installed")
@@ -4482,9 +4985,9 @@ elif page == "Methodology":
         <div class="hero">
 
             <div style="position:absolute; inset:0; overflow:hidden; border-radius:20px;">
-                <img src="{AUTH_BG_IMAGE}" alt="" aria-hidden="true"
+                <img src="{AUTH_BG_IMAGE}"
                      style="width:100%; height:100%; object-fit:cover; opacity:0.20;" />
-                <div style="position:absolute; inset:0; background:linear-gradient(100deg, #0A2226 35%, rgba(10,34,38,0.55) 70%, rgba(10,34,38,0.2) 100%);"></div>
+                <div style="position:absolute; inset:0; background:linear-gradient(100deg, #1D2023 35%, rgba(10,34,38,0.55) 70%, rgba(10,34,38,0.2) 100%);"></div>
             </div>
 
             <div style="position:relative; z-index:1;">
@@ -4513,15 +5016,16 @@ elif page == "Methodology":
             margin-bottom:18px; height:190px;
             border:1px solid rgba(241,245,249,0.14);
         ">
-            <img src="{image_src('industrial_maintenance')}" alt="{image_alt('industrial_maintenance')}" loading="lazy"
+            <img src="{image_src('safety_worker')}" alt="{image_alt('safety_worker')}" loading="lazy"
                  style="width:100%; height:100%; object-fit:cover; object-position:center 30%; opacity:0.55;" />
             <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,34,38,0.2) 0%, rgba(10,34,38,0.9) 100%);"></div>
-            <div style="position:absolute; left:22px; bottom:16px; color:#F1F5F9; font-size:15px; font-weight:700;">
+            <div style="position:absolute; left:22px; bottom:16px; color:#ECE8DF; font-size:15px; font-weight:700;">
                 Field inspections feed the model
             </div>
             <div style="position:absolute; left:22px; bottom:-2px; color:rgba(241,245,249,0.66); font-size:12px; max-width:520px; padding-bottom:10px;">
                 Every unsafe act, near-miss and observation logged on site becomes training signal for the SIF NLP engine.
             </div>
+            <div style="position:absolute; right:16px; bottom:12px;">{image_credit('safety_worker')}</div>
         </div>
         """
     )
@@ -4538,26 +5042,34 @@ elif page == "Methodology":
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
             <div style="padding:10px 16px; border-radius:10px; background:rgba(241,245,249,0.08); border:1px solid rgba(241,245,249,0.25); color:rgba(241,245,249,0.8); font-size:12.5px; font-weight:600; white-space:nowrap;">Text preprocessing</div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
-            <div style="padding:10px 16px; border-radius:10px; background:rgba(54,197,240,0.10); border:1px solid rgba(54,197,240,0.35); color:#36C5F0; font-size:12.5px; font-weight:600; white-space:nowrap;">SIF NLP engine</div>
+            <div style="padding:10px 16px; border-radius:10px; background:rgba(54,197,240,0.10); border:1px solid rgba(54,197,240,0.35); color:#D67A21; font-size:12.5px; font-weight:600; white-space:nowrap;">SIF NLP engine</div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
             <div style="display:flex; gap:8px; align-items:center; padding:6px 10px; border-radius:12px; border:1px dashed rgba(255,200,87,0.3);">
-                <div style="padding:10px 14px; border-radius:10px; background:rgba(255,200,87,0.10); border:1px solid rgba(255,200,87,0.35); color:#FFC857; font-size:12.5px; font-weight:600; white-space:nowrap;">SIF precursor</div>
+                <div style="padding:10px 14px; border-radius:10px; background:rgba(255,200,87,0.10); border:1px solid rgba(255,200,87,0.35); color:#CC9A2E; font-size:12.5px; font-weight:600; white-space:nowrap;">SIF precursor</div>
                 <div style="color:rgba(241,245,249,0.66); font-size:12px;">+</div>
-                <div style="padding:10px 14px; border-radius:10px; background:rgba(255,200,87,0.10); border:1px solid rgba(255,200,87,0.35); color:#FFC857; font-size:12.5px; font-weight:600; white-space:nowrap;">Risk score</div>
+                <div style="padding:10px 14px; border-radius:10px; background:rgba(255,200,87,0.10); border:1px solid rgba(255,200,87,0.35); color:#CC9A2E; font-size:12.5px; font-weight:600; white-space:nowrap;">Risk score</div>
             </div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
-            <div style="padding:10px 16px; border-radius:10px; background:rgba(54,197,240,0.10); border:1px solid rgba(54,197,240,0.35); color:#36C5F0; font-size:12.5px; font-weight:600; white-space:nowrap;">Barrier analysis</div>
+            <div style="padding:10px 16px; border-radius:10px; background:rgba(54,197,240,0.10); border:1px solid rgba(54,197,240,0.35); color:#D67A21; font-size:12.5px; font-weight:600; white-space:nowrap;">Barrier analysis</div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
-            <div style="padding:10px 16px; border-radius:10px; background:rgba(255,107,107,0.10); border:1px solid rgba(255,107,107,0.35); color:#FF6B6B; font-size:12.5px; font-weight:600; white-space:nowrap;">Early warning</div>
+            <div style="padding:10px 16px; border-radius:10px; background:rgba(255,107,107,0.10); border:1px solid rgba(255,107,107,0.35); color:#B8452F; font-size:12.5px; font-weight:600; white-space:nowrap;">Early warning</div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
-            <div style="padding:10px 16px; border-radius:10px; background:rgba(0,168,120,0.10); border:1px solid rgba(0,168,120,0.35); color:#00A878; font-size:12.5px; font-weight:600; white-space:nowrap;">Recommended action</div>
+            <div style="padding:10px 16px; border-radius:10px; background:rgba(0,168,120,0.10); border:1px solid rgba(0,168,120,0.35); color:#52815A; font-size:12.5px; font-weight:600; white-space:nowrap;">Recommended action</div>
             <div style="color:rgba(241,245,249,0.55); font-size:16px;">&rarr;</div>
             <div style="padding:10px 16px; border-radius:10px; background:rgba(241,245,249,0.08); border:1px solid rgba(241,245,249,0.25); color:rgba(241,245,249,0.8); font-size:12.5px; font-weight:600; white-space:nowrap;">HSE review</div>
         </div>
         """
     )
 
+    render_html(
+        """<div class="meta-line" style="margin:8px 0 18px;">Visuals are sourced from Unsplash and Pexels under their respective free-use licenses. Attribution is not required by those licenses, but source links are provided here for transparency. Images are decorative and are not used as ML training data.</div>"""
+    )
+
     s1, s2, s3 = st.columns(3)
+
+    render_html(
+        f"""<div style="position:relative;border-radius:16px;overflow:hidden;margin-bottom:18px;height:190px;border:1px solid rgba(241,245,249,.14);"><img src="{image_src('industrial_maintenance')}" alt="{image_alt('industrial_maintenance')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center 30%;opacity:.55;" /><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,34,38,.2) 0%,rgba(10,34,38,.9) 100%);"></div><div style="position:absolute;left:22px;bottom:16px;color:#F1F5F9;font-size:15px;font-weight:700;">Field inspections feed the model</div><div style="position:absolute;left:22px;bottom:-2px;color:rgba(241,245,249,.66);font-size:12px;max-width:520px;padding-bottom:10px;">Every unsafe act, near-miss and observation logged on site becomes training signal for the SIF NLP engine.</div></div>"""
+    )
 
     cards = [
         (
@@ -4685,18 +5197,4 @@ elif page == "Methodology":
 # FOOTER
 # ============================================================
 
-render_html(
-    """
-    <div style="
-        margin-top:40px;
-        padding-top:15px;
-        border-top:1px solid #163338;
-        text-align:center;
-        color:rgba(241,245,249,0.55);
-        font-size:11px;
-    ">
-        OilSafe Intelligence · AI/NLP SIF Early Warning Engine
-        · 5,000-record OIL-grounded training dataset
-    </div>
-    """
-)
+app_footer()
