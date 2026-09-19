@@ -313,16 +313,39 @@ render_html(
             padding-bottom: 3rem;
             max-width: 1560px;
         }
+        /* Keep Streamlit's sidebar toggle visible. The previous CSS collapsed
+           the entire header, which also hid the navigation control. */
         #MainMenu, footer, header [data-testid="stToolbar"] { visibility: hidden; }
         header[data-testid="stHeader"] {
-            height: 0 !important;
-            min-height: 0 !important;
             background: transparent !important;
             border: 0 !important;
         }
         header[data-testid="stHeader"] > div {
-            height: 0 !important;
-            min-height: 0 !important;
+            background: transparent !important;
+        }
+
+        /* Make the sidebar reliably visible even if the browser/session was
+           previously saved in Streamlit's collapsed-sidebar state. */
+        section[data-testid="stSidebar"] {
+            width: 268px !important;
+            min-width: 268px !important;
+            max-width: 268px !important;
+            transform: none !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        section[data-testid="stSidebar"][aria-expanded="false"] {
+            width: 268px !important;
+            min-width: 268px !important;
+            max-width: 268px !important;
+            transform: none !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            visibility: visible !important;
+            opacity: 1 !important;
+            display: block !important;
         }
         .main .block-container {
             padding-top: 0.55rem !important;
@@ -1651,12 +1674,7 @@ precursor_keywords = {
         "depressurized", "depressurised", "flange", "loosening",
         "line of fire", "directly in front", "pressure indicator",
     ],
-    "Stored Pressure / Line of Fire": [
-        "STOP work and move personnel out of the line-of-fire immediately.",
-        "Do not loosen/open the flange until the system is isolated, depressurized and verified safe.",
-        "Verify pressure indication and positive isolation before breaking containment.",
-        "Establish an exclusion zone and require competent supervision before restart.",
-    ],
+    # Action guidance for this precursor is stored in recommended_actions below.
     "Permit Control Failure": [
         "permit", "authorization",
         "isolation", "expired", "work activity",
@@ -2059,7 +2077,7 @@ def analyze_report(text):
 # Patch the existing analysis function with the V2 layers without removing the original logic.
 _original_analyze_report = analyze_report
 
-def _sif_pathway_override(text, base):
+def _legacy_sif_pathway_override(text, base):
     """Resolve high-energy SIF pathways that a single-label ML classifier can miss.
 
     This layer deliberately separates the *hazard pathway* from the model's
@@ -2129,6 +2147,7 @@ def _sif_pathway_override(text, base):
         "harness disconnected", "harness was disconnected",
         "without connecting the harness", "without connecting harness",
         "without connecting the full body harness",
+        "without connecting the full-body safety harness",
         "full body harness not connected", "full body harness was not connected",
         "full body harness not attached", "full body harness was not attached",
         "lifeline not connected", "lifeline was not connected",
@@ -2199,6 +2218,255 @@ def _sif_pathway_override(text, base):
         }
 
     return None
+
+
+def _sif_pathway_override(text, base):
+    """Resolve explicit SIF pathways from the narrative before relying on the
+    historical single-label classifier.
+
+    The rule layer is intentionally conservative: it requires a hazard plus
+    an exposure/control-gap signal. It is not a probability model.
+    """
+    low = text.lower()
+
+    def hits(terms):
+        return [term for term in terms if term in low]
+
+    # ------------------------------------------------------------
+    # 1. Working at height
+    # ------------------------------------------------------------
+    height = hits([
+        "working at height", "work at height", "above ground",
+        "metres above", "meters above", "metre above", "meter above",
+        "elevated platform", "scaffold", "ladder",
+    ])
+    fall_gap = hits([
+        "without fall protection", "no fall protection",
+        "without guardrail", "without guard rail", "no guardrail",
+        "no guard rail", "unprotected edge", "inadequate fall protection",
+        "harness not connected", "harness was not connected",
+        "harness not attached", "harness was not attached",
+        "lifeline not connected", "lifeline was not connected",
+        "lifeline not attached", "lifeline was not attached",
+        "without connecting the harness",
+        "without connecting the full body harness",
+        "without connecting the full-body safety harness",
+        "full body harness not connected",
+        "full body harness was not connected",
+        "not connected to the lifeline",
+        "not attached to the lifeline",
+    ])
+    if height and fall_gap:
+        return {
+            "precursor": "Fall from Height",
+            "pathway": "Working at height → inadequate fall protection → fall exposure → potential serious injury/fatality",
+            "evidence": list(dict.fromkeys(height + fall_gap)),
+            "actions": [
+                "STOP work at height until the access/platform is made safe.",
+                "Provide effective guardrails/edge protection or an approved fall-protection system.",
+                "Verify anchorage, harness/lifeline and access equipment before restart.",
+                "Establish an exclusion zone below and secure tools/materials against dropped objects.",
+                "Require supervisor/HSE verification before the activity resumes.",
+            ],
+            "confidence": 0.90,
+        }
+
+    # ------------------------------------------------------------
+    # 2. Vehicle–pedestrian interaction
+    # ------------------------------------------------------------
+    vehicle = hits([
+        "vehicle", "heavy vehicle", "moving vehicle", "vehicle movement",
+        "reversing", "reversed", "reverse", "truck",
+    ])
+    pedestrian = hits([
+        "pedestrian", "pedestrians", "personnel", "worker", "workers",
+        "people", "person",
+    ])
+    vehicle_gap = hits([
+        "without a clearly visible spotter", "without a spotter",
+        "no spotter", "spotter was not present", "spotter not present",
+        "banksman not present", "without banksman", "no banksman",
+        "no exclusion zone", "exclusion zone was not established",
+        "exclusion zone not established", "no barricade",
+    ])
+    vehicle_exposure = hits([
+        "pedestrians were present close", "pedestrian was close",
+        "pedestrians were close", "pedestrian was present",
+        "pedestrians were present", "pedestrians remained",
+        "workers were close to the vehicle", "workers were near the vehicle",
+        "personnel were close to the vehicle", "personnel were near the vehicle",
+        "within the vehicle movement path", "in the vehicle movement path",
+        "within the reversing path", "in the reversing path",
+        "close to the vehicle movement path", "near the vehicle movement path",
+    ])
+    if vehicle and pedestrian and (vehicle_gap or vehicle_exposure):
+        evidence = list(dict.fromkeys(vehicle + pedestrian + vehicle_gap + vehicle_exposure))
+        return {
+            "precursor": "Vehicle-Pedestrian Interaction",
+            "pathway": "Vehicle movement/reversing → pedestrian proximity → inadequate separation/spotter control → potential struck-by event",
+            "evidence": evidence,
+            "actions": [
+                "STOP or control the vehicle movement until the pedestrian route is separated.",
+                "Establish and enforce a physical exclusion zone around the vehicle path.",
+                "Use a trained spotter/banksman for reversing where required.",
+                "Keep pedestrians outside the reversing/impact path.",
+                "Require supervisor/HSE verification before normal movement resumes.",
+            ],
+            "confidence": 0.92,
+        }
+
+    # ------------------------------------------------------------
+    # 3. Suspended load / dropped object
+    # ------------------------------------------------------------
+    lifting = hits([
+        "suspended load", "lifting operation", "lifting", "crane",
+        "rigging", "slung load", "load was being moved",
+    ])
+    lifting_exposure = hits([
+        "standing close to the suspended load", "stood close to the suspended load",
+        "personnel were standing close", "personnel were close to the load",
+        "workers were close to the load", "worker was close to the load",
+        "standing under the suspended load", "standing beneath the suspended load",
+        "under the suspended load", "beneath the suspended load",
+        "personnel were under", "personnel were beneath",
+        "above the work area", "over the work area",
+    ])
+    lifting_gap = hits([
+        "no exclusion zone", "exclusion zone was not established",
+        "exclusion zone not established", "no barricade",
+        "barricading was not provided", "not clearly barricaded",
+        "exclusion zone was not clearly barricaded",
+    ])
+    if lifting and (lifting_exposure or lifting_gap):
+        evidence = list(dict.fromkeys(lifting + lifting_exposure + lifting_gap))
+        return {
+            "precursor": "Dropped Object",
+            "pathway": "Lifting/suspended load → personnel in or near the drop/impact zone → inadequate exclusion control → potential dropped-object injury",
+            "evidence": evidence,
+            "actions": [
+                "STOP the lifting movement until personnel are clear of the drop/impact zone.",
+                "Establish and enforce a physical exclusion zone.",
+                "Inspect rigging, lifting equipment and load security.",
+                "Never allow personnel beneath or unnecessarily close to a suspended load.",
+                "Require competent lifting supervision before restart.",
+            ],
+            "confidence": 0.92,
+        }
+
+    # ------------------------------------------------------------
+    # 4. Confined space: imminent entry + critical control gap
+    # ------------------------------------------------------------
+    confined = hits(["confined space", "confined-space", "vessel entry", "tank entry"])
+    confined_gap = hits([
+        "without evidence of atmospheric testing",
+        "without atmospheric testing", "atmospheric testing not completed",
+        "atmospheric test not completed", "gas testing not completed",
+        "without gas testing", "standby person was not confirmed",
+        "standby person not confirmed", "standby was not confirmed",
+        "rescue arrangements were not confirmed",
+        "rescue arrangement not confirmed", "rescue arrangements not confirmed",
+        "without rescue arrangements", "rescue not confirmed",
+    ])
+    confined_entry = hits([
+        "preparing to enter", "preparing for entry", "about to enter",
+        "entering the confined space", "entered the confined space",
+        "worker was preparing to enter", "worker preparing to enter",
+    ])
+    if confined and confined_gap and confined_entry:
+        evidence = list(dict.fromkeys(confined + confined_entry + confined_gap))
+        return {
+            "precursor": "Confined Space Exposure",
+            "pathway": "Confined-space entry → critical entry control gap → potential atmospheric/engulfment exposure → potential serious injury/fatality",
+            "evidence": evidence,
+            "actions": [
+                "STOP entry until the confined-space controls are verified.",
+                "Complete and document atmospheric testing before entry.",
+                "Confirm trained attendant/standby coverage.",
+                "Verify rescue and emergency arrangements before entry.",
+                "Require permit and supervisor/HSE verification before entry.",
+            ],
+            "confidence": 0.93,
+        }
+
+    # ------------------------------------------------------------
+    # 5. Gas / hydrocarbon release with personnel nearby
+    # ------------------------------------------------------------
+    gas = hits([
+        "gas leakage", "gas leak", "gas release", "gas was detected",
+        "suspected gas", "smell of gas", "hydrocarbon leak",
+        "hydrocarbon release", "loss of containment", "leakage",
+        "leak detected",
+    ])
+    release_gap = hits([
+        "not immediately isolated", "area was not isolated",
+        "area was not immediately isolated", "without isolation",
+        "not isolated", "isolation not confirmed", "not contained",
+        "containment was not established", "work continued",
+    ])
+    gas_exposure = hits([
+        "nearby workers remained", "workers remained in the vicinity",
+        "workers remained nearby", "personnel remained in the vicinity",
+        "personnel remained nearby", "workers were in the vicinity",
+        "personnel were in the vicinity", "workers remained in the affected area",
+        "personnel remained in the affected area",
+    ])
+    if gas and release_gap and (gas_exposure or pedestrian):
+        evidence = list(dict.fromkeys(gas + release_gap + gas_exposure))
+        return {
+            "precursor": "Loss of Containment",
+            "pathway": "Gas/hydrocarbon release → incomplete isolation → personnel remain nearby → potential toxic/flammable exposure",
+            "evidence": evidence,
+            "actions": [
+                "STOP the affected activity and move personnel to a safe area.",
+                "Isolate and control the release under the applicable procedure.",
+                "Establish the required exclusion zone and verify gas detection.",
+                "Confirm emergency response and communication controls.",
+                "Escalate to HSE/operations if the release or exposure persists.",
+            ],
+            "confidence": 0.94,
+        }
+
+    # ------------------------------------------------------------
+    # 6. Electrical cable: damaged/exposed and accessible to people.
+    # Do not claim energized contact unless the narrative says live/energized.
+    # ------------------------------------------------------------
+    electrical = hits([
+        "electrical cable", "electrical wire", "electrical equipment",
+        "switchgear", "electrical panel", "power cable",
+    ])
+    electrical_gap = hits([
+        "damaged insulation", "damaged cable", "exposed portion",
+        "exposed cable", "accessible to personnel", "accessible to workers",
+        "temporary protection had not been provided", "temporary protection not provided",
+        "insulation was damaged", "insulation damaged",
+    ])
+    energized = hits([
+        "live cable", "live electrical", "energized", "energised",
+        "live wire", "voltage present", "electrical contact",
+    ])
+    if electrical and electrical_gap:
+        evidence = list(dict.fromkeys(electrical + electrical_gap + energized))
+        confidence = 0.94 if energized else 0.86
+        return {
+            "precursor": "Electrical Contact",
+            "pathway": (
+                "Damaged/exposed electrical cable → personnel accessibility → "
+                + ("energized electrical source → potential electrical contact" if energized
+                   else "electrical energy state not explicitly confirmed → potential electrical contact")
+            ),
+            "evidence": evidence,
+            "actions": [
+                "Remove personnel from the area and isolate the electrical source where applicable.",
+                "Inspect and repair/replace the damaged cable or insulation.",
+                "Provide effective temporary protection until permanent repair is completed.",
+                "Verify de-energization/LOTO before electrical work.",
+                "Allow only authorized electrical personnel to restore the equipment.",
+            ],
+            "confidence": confidence,
+        }
+
+    # Retain the previous, already-developed high-energy rules for other cases.
+    return _legacy_sif_pathway_override(text, base)
 
 
 def analyze_report(text):
@@ -2385,114 +2653,219 @@ def _context_analysis(text):
 
 
 def _precursor_context(text, precursor):
-    """Determine whether the detected precursor is an active SIF pathway.
+    """Determine active exposure/control-gap context for the detected precursor.
 
-    Priority order is: explicit negative/absence -> explicit exposure/failure ->
-    positive control. This prevents phrases such as "no personnel entered the
-    line of fire" from being misread as an exposure merely because "entered"
-    appears in the sentence.
+    Important distinction:
+      * Hazard mention alone is not active exposure.
+      * Explicit worker proximity, access, entry, or a critical control gap is
+        sufficient for an operational warning.
+      * Positive controls must not cancel a simultaneous explicit failure.
     """
-    import re
     low = text.lower()
-    ctx = _context_analysis(text)
 
     def any_phrase(phrases):
         return any(p in low for p in phrases)
-
-    def negated_phrase(phrases):
-        # Common safety negation forms. Check the phrase itself rather than
-        # relying on a generic keyword window.
-        for p in phrases:
-            if re.search(r"\b(?:no|not|never|did not|didn't|without)\s+(?:\w+\s+){0,4}" + re.escape(p) + r"\b", low):
-                return True
-        return False
 
     no_people = any_phrase([
         "no personnel", "no person", "no worker", "no workers", "no employee",
         "no one was exposed", "no one entered", "personnel were not exposed",
     ])
 
+    # -------- Fall from height --------
     if precursor == "Fall from Height":
-        height = any_phrase(["working at height", "work at height", "above ground", "metres above", "meters above", "scaffold", "ladder", "elevated platform"])
-        explicit_gap = any_phrase([
-            "without fall protection", "no fall protection", "without guardrail", "without guard rail",
-            "no guardrail", "no guard rail", "unprotected edge", "inadequate fall protection",
-            "fall protection failed", "fall protection was missing", "guardrail missing",
+        height = any_phrase([
+            "working at height", "work at height", "above ground",
+            "metres above", "meters above", "scaffold", "ladder",
+            "elevated platform",
+        ])
+        gap = any_phrase([
+            "without fall protection", "no fall protection",
+            "without guardrail", "without guard rail", "no guardrail",
+            "no guard rail", "unprotected edge", "inadequate fall protection",
             "harness not connected", "harness was not connected",
             "harness not attached", "harness was not attached",
-            "harness disconnected", "harness was disconnected",
-            "without connecting the harness", "without connecting harness",
-            "without connecting the full body harness",
-            "full body harness not connected", "full body harness was not connected",
-            "full body harness not attached", "full body harness was not attached",
             "lifeline not connected", "lifeline was not connected",
             "lifeline not attached", "lifeline was not attached",
-            "not connected to the lifeline", "not attached to the lifeline",
-            "not connected to a lifeline", "not attached to a lifeline",
-            "without connecting to the lifeline", "without connecting to a lifeline",
-            "without being connected to the lifeline",
-            "without being attached to the lifeline",
-        ]) and not any_phrase([
-            "fall protection provided", "guardrail installed", "guard rails installed",
-            "edge protected", "harness connected", "harness was connected",
-            "lifeline connected", "lifeline was connected",
+            "without connecting the harness",
+            "without connecting the full body harness",
+            "without connecting the full-body safety harness",
+            "full body harness not connected",
+            "full body harness was not connected",
+            "not connected to the lifeline",
+            "not attached to the lifeline",
         ])
-        explicit_exposure = any_phrase([
-            "worker was at height", "worker working at height", "worker was working at height",
-            "worker was observed working at height", "worker observed working at height",
-            "person was at height", "operator was at height", "worker was exposed to a fall",
-            "worker was exposed to fall", "person was exposed to a fall",
-        ]) and not no_people
         safe = any_phrase([
-            "fall protection provided", "fall protection was provided", "harness connected",
-            "harness was connected", "lifeline connected", "edge protected", "guardrail installed",
-        ]) and not explicit_gap
-        active = bool(height and (explicit_gap or explicit_exposure) and not safe)
-        return {"active": active, "safe": bool(safe and not active), "reason": "Height exposure with a protection gap" if active else "Height hazard controlled or exposure not established"}
+            "fall protection provided", "fall protection was provided",
+            "harness connected", "harness was connected",
+            "lifeline connected", "edge protected", "guardrail installed",
+        ]) and not gap
+        active = bool(height and gap and not no_people and not safe)
+        return {
+            "active": active,
+            "safe": bool(safe and not active),
+            "reason": "Height exposure with a protection gap" if active
+                       else "Height hazard controlled or exposure not established",
+        }
 
-    if precursor in {"Struck By / Line of Fire", "Dropped Object", "Vehicle-Pedestrian Interaction"}:
+    # -------- Vehicle / line-of-fire / dropped object --------
+    if precursor in {
+        "Struck By / Line of Fire", "Dropped Object", "Vehicle-Pedestrian Interaction"
+    }:
         hazard = any_phrase([
             "line of fire", "struck by", "suspended load", "dropped object",
-            "moving equipment", "moving vehicle", "impact zone", "vehicle movement",
+            "moving equipment", "moving vehicle", "impact zone",
+            "vehicle movement", "reversing", "reversed", "lifting operation",
+            "lifting",
         ])
-        explicit_exposure = any_phrase([
+        exposure = any_phrase([
             "worker entered the line of fire", "worker was in the line of fire",
-            "worker was near the moving", "worker stood under", "worker stood beneath",
-            "personnel were inside the exclusion zone", "personnel were within the impact zone",
-            "operator was near the moving", "person was in the impact zone",
-            "worker entered the exclusion zone", "worker entered the impact zone",
-        ]) and not no_people and not any_phrase(["did not enter the line of fire", "not in the line of fire", "outside the exclusion zone"])
-        explicit_gap = any_phrase([
-            "no exclusion zone", "no barricade", "barricade missing", "barricading missing",
-            "exclusion zone not maintained", "barricade not maintained", "line of fire was not barricaded",
-            "entered the line of fire", "entered the impact zone", "inside the impact zone",
-        ]) and not any_phrase(["did not enter the line of fire", "no personnel", "no worker", "outside the exclusion zone"])
-        safe = any_phrase([
-            "no personnel", "no worker", "outside the exclusion zone", "safe distance",
-            "barricade intact", "barricading was intact", "exclusion zone maintained",
-            "kept clear", "work stopped", "activity stopped",
-        ]) and not (explicit_exposure or explicit_gap)
-        active = bool(hazard and (explicit_exposure or explicit_gap) and not safe)
-        return {"active": active, "safe": bool(safe and not active), "reason": "Active line-of-fire/impact exposure or barrier failure" if active else "Line-of-fire hazard mentioned but exposure is controlled/not established"}
-
-    if precursor in {"Electrical Contact", "Electrical Isolation Failure"}:
-        hazard = any_phrase(["live", "energized", "energised", "electrical contact", "electrical cable", "switchgear", "panel"])
-        explicit_gap = any_phrase(["without isolation", "not isolated", "no lockout", "no loto", "live contact", "touched live", "energized while working", "energised while working"])
-        safe = any_phrase(["de-energized", "deenergized", "isolated", "lockout", "locked out", "voltage zero", "power isolated"]) and not explicit_gap
-        active = bool(hazard and explicit_gap and not safe)
-        return {"active": active, "safe": bool(safe and not active), "reason": "Electrical energy with isolation/control failure" if active else "Electrical hazard controlled or exposure not explicit"}
-
-    if precursor in {"Loss of Containment", "Fire and Explosion Potential", "Stored Pressure / Line of Fire", "Process Safety Barrier Failure"}:
-        hazard = any_phrase(["leak", "release", "hydrocarbon", "gas", "vapour", "vapor", "pressure", "flammable"])
-        explicit_gap = any_phrase([
-            "release occurred", "leaking", "leak detected", "pressure remained", "residual pressure",
-            "without isolation", "ignition source present", "work continued", "loss of containment",
+            "worker was near the moving", "worker stood under",
+            "worker stood beneath", "personnel were inside the exclusion zone",
+            "personnel were within the impact zone", "operator was near the moving",
+            "person was in the impact zone", "worker entered the exclusion zone",
+            "worker entered the impact zone", "standing close to the suspended load",
+            "personnel were standing close", "personnel were close to the load",
+            "workers were close to the load", "worker was close to the load",
+            "standing under the suspended load", "standing beneath the suspended load",
+            "under the suspended load", "beneath the suspended load",
+            "pedestrians were present close", "pedestrians were present",
+            "pedestrian was present", "workers were close to the vehicle",
+            "workers were near the vehicle", "personnel were close to the vehicle",
+            "personnel were near the vehicle", "close to the vehicle movement path",
+            "near the vehicle movement path", "within the vehicle movement path",
+            "in the vehicle movement path", "within the reversing path",
+            "in the reversing path",
         ])
-        safe = any_phrase(["isolated", "depressurized", "depressurised", "no release", "leak stopped", "leak contained", "gas test clear", "ignition sources removed"]) and not explicit_gap
-        active = bool(hazard and explicit_gap and not safe)
-        return {"active": active, "safe": bool(safe and not active), "reason": "Process-energy exposure/control failure" if active else "Process hazard controlled or exposure not explicit"}
+        gap = any_phrase([
+            "no exclusion zone", "no barricade", "barricade missing",
+            "barricading missing", "exclusion zone not maintained",
+            "barricade not maintained", "line of fire was not barricaded",
+            "no spotter", "without a spotter", "spotter was not present",
+            "spotter not present", "no banksman", "without banksman",
+            "banksman not present", "not clearly barricaded",
+            "exclusion zone was not established",
+            "exclusion zone not established",
+        ])
+        negative = any_phrase([
+            "did not enter the line of fire", "not in the line of fire",
+            "outside the exclusion zone", "no personnel", "no worker",
+            "safe distance", "kept clear", "activity stopped",
+        ])
+        safe = any_phrase([
+            "barricade intact", "barricading was intact",
+            "exclusion zone maintained", "kept clear", "work stopped",
+            "activity stopped", "safe distance maintained",
+        ]) and not (exposure or gap)
+        active = bool(hazard and (exposure or gap) and not no_people and not negative and not safe)
+        return {
+            "active": active,
+            "safe": bool(safe and not active),
+            "reason": "Active line-of-fire/impact exposure or barrier failure" if active
+                       else "Line-of-fire hazard mentioned but exposure is controlled/not established",
+        }
 
-    return {"active": bool(ctx["active_exposure"] and not ctx["controlled"]), "safe": bool(ctx["controlled"] and not ctx["active_exposure"]), "reason": "Active worker exposure" if ctx["active_exposure"] and not ctx["controlled"] else "Controls/exposure context reduces active SIF concern"}
+    # -------- Electrical --------
+    if precursor in {"Electrical Contact", "Electrical Isolation Failure"}:
+        hazard = any_phrase([
+            "live", "energized", "energised", "electrical contact",
+            "electrical cable", "electrical wire", "switchgear", "panel",
+        ])
+        gap = any_phrase([
+            "without isolation", "not isolated", "no lockout", "no loto",
+            "live contact", "touched live", "energized while working",
+            "energised while working", "damaged insulation", "damaged cable",
+            "exposed portion", "exposed cable", "accessible to personnel",
+            "accessible to workers", "temporary protection had not been provided",
+            "temporary protection not provided", "insulation was damaged",
+        ])
+        safe = any_phrase([
+            "de-energized", "deenergized", "isolated", "lockout",
+            "locked out", "voltage zero", "power isolated",
+        ]) and not gap
+        active = bool(hazard and gap and not safe)
+        return {
+            "active": active,
+            "safe": bool(safe and not active),
+            "reason": "Electrical hazard with a control/accessibility gap" if active
+                       else "Electrical hazard controlled or active exposure not established",
+        }
+
+    # -------- Process / gas / hydrocarbon / pressure --------
+    if precursor in {
+        "Loss of Containment", "Fire and Explosion Potential",
+        "Stored Pressure / Line of Fire", "Process Safety Barrier Failure"
+    }:
+        hazard = any_phrase([
+            "leak", "leakage", "release", "hydrocarbon", "gas",
+            "vapour", "vapor", "pressure", "flammable",
+        ])
+        gap = any_phrase([
+            "release occurred", "leaking", "leak detected", "gas leakage",
+            "gas leak", "pressure remained", "residual pressure",
+            "without isolation", "not immediately isolated", "not isolated",
+            "area was not isolated", "area was not immediately isolated",
+            "ignition source present", "work continued",
+            "loss of containment", "not contained",
+        ])
+        exposure = any_phrase([
+            "workers remained in the vicinity", "nearby workers remained",
+            "workers remained nearby", "personnel remained in the vicinity",
+            "personnel remained nearby", "workers were in the vicinity",
+            "personnel were in the vicinity", "workers remained in the affected area",
+            "personnel remained in the affected area", "worker was exposed",
+            "personnel were exposed", "workers were exposed",
+        ])
+        safe = any_phrase([
+            "leak stopped", "leak contained", "gas test clear",
+            "ignition sources removed", "fully isolated", "depressurized",
+            "depressurised", "no release",
+        ]) and not gap
+        active = bool(hazard and (gap or exposure) and not safe)
+        return {
+            "active": active,
+            "safe": bool(safe and not active),
+            "reason": "Process-energy release/control gap with personnel exposure" if active
+                       else "Process hazard controlled or active exposure not established",
+        }
+
+    # -------- Confined space --------
+    if precursor == "Confined Space Exposure":
+        hazard = any_phrase(["confined space", "confined-space", "vessel entry", "tank entry"])
+        entry = any_phrase([
+            "preparing to enter", "preparing for entry", "about to enter",
+            "entering the confined space", "entered the confined space",
+            "worker was preparing to enter", "worker preparing to enter",
+        ])
+        gap = any_phrase([
+            "without evidence of atmospheric testing", "without atmospheric testing",
+            "atmospheric testing not completed", "atmospheric test not completed",
+            "gas testing not completed", "without gas testing",
+            "standby person was not confirmed", "standby person not confirmed",
+            "rescue arrangements were not confirmed",
+            "rescue arrangement not confirmed", "rescue arrangements not confirmed",
+            "without rescue arrangements", "rescue not confirmed",
+        ])
+        safe = any_phrase([
+            "atmospheric testing completed", "gas testing completed",
+            "rescue arrangements confirmed", "standby person confirmed",
+            "permit verified", "entry controls verified",
+        ]) and not gap
+        active = bool(hazard and entry and gap and not safe)
+        return {
+            "active": active,
+            "safe": bool(safe and not active),
+            "reason": "Critical confined-space entry control gap" if active
+                       else "Confined-space controls verified or critical exposure not established",
+        }
+
+    # Generic fallback: use sentence-level evidence.
+    ctx = _context_analysis(text)
+    return {
+        "active": bool(ctx["active_exposure"] and not ctx["controlled"]),
+        "safe": bool(ctx["controlled"] and not ctx["active_exposure"]),
+        "reason": "Active worker exposure" if ctx["active_exposure"] and not ctx["controlled"]
+                  else "Controls/exposure context reduces active SIF concern",
+    }
 
 
 def _contextual_barriers(precursor, result, ctx_result):
@@ -2597,6 +2970,36 @@ def _final_safety_context_analyze(text):
         risk = "HIGH"
         priority = "IMMEDIATE"
         confidence = max(confidence, 0.90)
+
+    # Explicit high-energy pathway overrides are intentionally safety-focused.
+    # If the deterministic pathway resolver found a clear critical control gap,
+    # do not let a conservative historical ML label hide it.
+    if active and base.get("pathway_override"):
+        if precursor in {
+            "Fall from Height",
+            "Vehicle-Pedestrian Interaction",
+            "Dropped Object",
+            "Confined Space Exposure",
+            "Loss of Containment",
+            "Fire and Explosion Potential",
+            "Stored Pressure / Line of Fire",
+        }:
+            risk = "HIGH"
+            priority = "IMMEDIATE"
+            confidence = max(confidence, float(base.get("pathway_confidence") or 0.88))
+        elif precursor == "Electrical Contact":
+            # Only escalate to HIGH when energized/live evidence is explicit.
+            if any(term in normalized.lower() for term in [
+                "energized", "energised", "live cable", "live wire",
+                "voltage present", "electrical contact",
+            ]):
+                risk = "HIGH"
+                priority = "IMMEDIATE"
+                confidence = max(confidence, 0.90)
+            else:
+                risk = "MEDIUM"
+                priority = "CORRECTIVE"
+                confidence = max(confidence, 0.82)
 
     base["risk"] = risk
     base["priority"] = priority
